@@ -25,6 +25,8 @@
  */
 package com.oracle.svm.core.jfr.logging;
 
+import static com.oracle.svm.core.heap.RestrictHeapAccess.Access.NO_ALLOCATION;
+
 import java.util.Locale;
 import java.util.Set;
 
@@ -57,6 +59,13 @@ public class JfrLogging {
     public void warnInternal(String message) {
         int tagSetId = SubstrateUtil.cast(LogTag.JFR_SYSTEM, Target_jdk_jfr_internal_LogTag.class).id;
         log(tagSetId, JfrLogConfiguration.JfrLogLevel.WARNING.level, message);
+    }
+
+    @RestrictHeapAccess(access = NO_ALLOCATION, reason = "May be used during OOME emergency dump.")
+    public void logJfrSettingWarning(String message) {
+        int tagSetId = SubstrateUtil.cast(LogTag.JFR_SETTING, Target_jdk_jfr_internal_LogTag.class).id;
+        log(tagSetId, JfrLogConfiguration.JfrLogLevel.WARNING.level, message);
+
     }
 
     public void log(int tagSetId, int level, String message) {
