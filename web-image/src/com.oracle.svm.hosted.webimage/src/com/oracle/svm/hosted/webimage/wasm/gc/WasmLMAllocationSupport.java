@@ -73,12 +73,6 @@ public class WasmLMAllocationSupport implements GCAllocationSupport {
         throw GraalError.unimplementedOverride(); // ExcludeFromJacocoGeneratedReport
     }
 
-    @Override
-    public boolean useTLAB() {
-        return false;
-    }
-
-    @Override
     public boolean shouldAllocateInTLAB(UnsignedWord size, boolean isArray) {
         throw GraalError.unimplementedOverride(); // ExcludeFromJacocoGeneratedReport
     }
