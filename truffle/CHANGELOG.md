@@ -33,6 +33,7 @@ This changelog summarizes major changes between Truffle versions relevant to lan
 * GR-65616 Added `ExactMath.truncateToUnsignedInt(float)` and `ExactMath.truncateToUnsignedLong(double)` methods that remove the decimal part (round toward zero) of a floating point (float or double) value and convert it to a saturated unsigned integer (int or long) value. These methods are intrinsic candidates.
 * GR-65616 Added `ExactMath.unsignedToFloat(long)` and `ExactMath.unsignedToDouble(long)` methods to convert an unsigned `long` to the closest `float` and `double` value, respectively. These methods are intrinsic candidates.
 * GR-67821: `TruffleLanguage.Env#createSystemThread` is now allowed to be be called from a system thread now without an explicitly entered context.
+* GR-44829: `TruffleString` nodes no longer profile the `expectedEncoding` parameter for interpreter performance reasons. Languages with non-constant string encodings should profile the encoding before passing it to `TruffleString` nodes.
 
 ## Version 24.2.0
 * GR-60636 Truffle now stops compiling when the code cache fills up on HotSpot. A warning is printed when that happens.
