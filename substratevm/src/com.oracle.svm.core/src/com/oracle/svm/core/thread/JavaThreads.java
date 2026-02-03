@@ -214,6 +214,15 @@ public final class JavaThreads {
         return carrier != null && carrier.vthread != null && Target_jdk_internal_vm_Continuation.isPinned(carrier.cont.getScope());
     }
 
+    /**
+     * Returns the carrier thread. Note that this method may only be called for the current thread
+     * or during a VM operation. Otherwise, the result could be stale.
+     */
+    public static Thread getVirtualThreadCarrier(Target_java_lang_VirtualThread thread) {
+        assert SubstrateUtil.cast(thread, Thread.class) == Thread.currentThread() || VMOperation.isInProgressAtSafepoint() : "otherwise, this information could change at any time";
+        return thread.carrierThread;
+    }
+
     @SuppressFBWarnings(value = "BC", justification = "Cast for @TargetClass")
     static Target_java_lang_ThreadGroup toTarget(ThreadGroup threadGroup) {
         return Target_java_lang_ThreadGroup.class.cast(threadGroup);
