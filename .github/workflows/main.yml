@@ -100,53 +100,55 @@ jobs:
         include:
           # /compiler
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               TOOLS_JDK_VERSION: "21"
               GATE_TAGS: "style,fullbuild,test"
               PRIMARY: "compiler"
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               GATE_TAGS: "build,bootstraplite"
               PRIMARY: "compiler"
           # /espresso
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               TOOLS_JDK_VERSION: "21"
               GATE_TAGS: "style,fullbuild"
               PRIMARY: "espresso"
           # /substratevm
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               TOOLS_JDK_VERSION: "21"
               GATE_TAGS: "style,fullbuild"
               PRIMARY: "substratevm"
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               GATE_TAGS: "build,helloworld,native_unittests"
               PRIMARY: "substratevm"
               PIP_PACKAGES: "jsonschema==4.6.1"
           - os: ubuntu-24.04
             env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               GATE_TAGS: "build,debuginfotest"
               PRIMARY: "substratevm"
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               GATE_TAGS: "hellomodule"
               PRIMARY: "substratevm"
           # /sulong
           - env:
-              JDK_VERSION: "21"
+              JDK_VERSION: "25"
+              TOOLS_JDK_VERSION: "21"
               GATE_TAGS: "style,fullbuild,sulongBasic"
               PRIMARY: "sulong"
           # /truffle
           - env:
-              JDK_VERSION: "21"
+              JDK_VERSION: "25"
+              TOOLS_JDK_VERSION: "21"
               GATE_TAGS: "style,fullbuild,fulltest"
               PRIMARY: "truffle"
           # /vm
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               GATE_TAGS: "build,sulong"
               GATE_OPTS: "--no-warning-as-error"
               PRIMARY: "vm"
@@ -155,7 +157,7 @@ jobs:
               DISABLE_POLYGLOT: true
               DISABLE_LIBPOLYGLOT: true
           - env:
-              JDK_VERSION: "latest"
+              JDK_VERSION: "25"
               GATE_TAGS: "build"
               GATE_OPTS: "--no-warning-as-error"
               PRIMARY: "vm"
@@ -167,7 +169,7 @@ jobs:
       MX_RUNS_DEBUG: ${{ contains(matrix.env.GATE_TAGS, 'debug') || matrix.env.GATE_TAGS == '' }}
       MX_RUNS_STYLE: ${{ contains(matrix.env.GATE_TAGS, 'style') || matrix.env.GATE_TAGS == '' }}
     steps:
-    - name: Checkout oracle/graal
+    - name: Checkout graalvm-community-25u/master
       uses: actions/checkout@v4
       with:
         ref: ${{ github.ref }} # Lock ref to current branch to avoid fetching others
@@ -184,16 +186,30 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.8'
-    - name: Fetch LabsJDK
+    - name: Get OpenJDK with static libs and jmods
       env: ${{ matrix.env }}
       run: |
-        mkdir jdk-dl
-        ${MX_PATH}/mx --java-home= fetch-jdk --jdk-id labsjdk-ce-${JDK_VERSION} --to jdk-dl --alias ${JAVA_HOME}
-    - name: Fetch Tools JDK
+        curl -sL https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ea/linux/x64/jdk/hotspot/normal/eclipse -o jdk.tar.gz
+        curl -sL https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ea/linux/x64/staticlibs/hotspot/normal/eclipse -o jdk-static-libs.tar.gz
+        curl -sL https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ea/linux/x64/jmods/hotspot/normal/eclipse -o jdk-jmods.tar.gz
+        mkdir -p ${JAVA_HOME}/jmods
+        tar xf jdk.tar.gz -C ${JAVA_HOME} --strip-components=1
+        tar xf jdk-static-libs.tar.gz -C ${JAVA_HOME} --strip-components=1
+        tar xf jdk-jmods.tar.gz -C ${JAVA_HOME}/jmods --strip-components=1
+        echo ${JAVA_HOME}
+        ${JAVA_HOME}/bin/java --version
+    - name: Fetch Tools OpenJDK
       env: ${{ matrix.env }}
       if: ${{ matrix.env.TOOLS_JDK_VERSION != '' }}
       run: |
-        ${MX_PATH}/mx --java-home= fetch-jdk --jdk-id labsjdk-ce-${TOOLS_JDK_VERSION} --to jdk-dl --alias ${TOOLS_JAVA_HOME_LOCATION}
+        rm -f tools-jdk*.tar.gz
+        curl -sL https://api.adoptium.net/v3/binary/latest/${TOOLS_JDK_VERSION}/ga/linux/x64/jdk/hotspot/normal/eclipse -o tools-jdk.tar.gz
+        curl -sL https://api.adoptium.net/v3/binary/latest/${TOOLS_JDK_VERSION}/ga/linux/x64/staticlibs/hotspot/normal/eclipse -o tools-jdk-static-libs.tar.gz
+        mkdir -p ${TOOLS_JAVA_HOME_LOCATION}
+        tar xf tools-jdk.tar.gz -C ${TOOLS_JAVA_HOME_LOCATION} --strip-components=1
+        tar xf tools-jdk-static-libs.tar.gz -C ${TOOLS_JAVA_HOME_LOCATION} --strip-components=1
+        echo ${TOOLS_JAVA_HOME_LOCATION}
+        ${TOOLS_JAVA_HOME_LOCATION}/bin/java --version
     - name: Update dependency cache
       if: ${{ env.MX_RUNS_DEBUG == 'true' || env.MX_RUNS_STYLE == 'true' }}
       run: sudo apt update
@@ -236,7 +252,7 @@ jobs:
       MX_PYTHON: 'python'
       PYTHONIOENCODING: 'utf-8'
     steps:
-    - name: Checkout oracle/graal
+    - name: Checkout graalvm-community-jdk25u/master
       uses: actions/checkout@v4
       with:
         ref: ${{ github.ref }} # Lock ref to current branch to avoid fetching others
@@ -253,11 +269,20 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.8'
-    - name: Fetch LabsJDK
-      shell: bash
+    - name: Get OpenJDK with static libs and jmods
       run: |
-        mkdir jdk-dl
-        ${MX_PATH}/mx --java-home= fetch-jdk --jdk-id labsjdk-ce-latest --to jdk-dl --alias ${JAVA_HOME}
+        $wc = New-Object System.Net.WebClient
+        $wc.DownloadFile("https://api.adoptium.net/v3/binary/latest/25/ea/windows/x64/jdk/hotspot/normal/eclipse", "$Env:temp\jdk.zip")
+        Expand-Archive "$Env:temp\jdk.zip" -DestinationPath "$Env:temp"
+        Move-Item -Path "$Env:temp\jdk-*" -Destination $Env:JAVA_HOME
+        $wc.DownloadFile("https://api.adoptium.net/v3/binary/latest/25/ea/windows/x64/staticlibs/hotspot/normal/eclipse", "$Env:temp\jdk-staticlibs.zip")
+        Expand-Archive "$Env:temp\jdk-staticlibs.zip" -DestinationPath "$Env:temp"
+        Move-Item -Path "$Env:temp\jdk-*\lib\static" -Destination $Env:JAVA_HOME\lib\
+        $wc.DownloadFile("https://api.adoptium.net/v3/binary/latest/25/ea/windows/x64/jmods/hotspot/normal/eclipse", "$Env:temp\jdk-jmods.zip")
+        Expand-Archive "$Env:temp\jdk-jmods.zip" -DestinationPath "$Env:temp"
+        Move-Item -Path "$Env:temp\jdk-*-jmods" -Destination $Env:JAVA_HOME\jmods
+        Remove-Item -Recurse "$Env:temp\jdk-*"
+        & $Env:JAVA_HOME\bin\java -version
     - name: Build GraalVM via cmd.exe
       shell: cmd
       run: |
