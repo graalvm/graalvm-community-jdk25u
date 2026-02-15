@@ -1,57 +1,37 @@
-# For Contributors
+# Contributing to GraalVM Community Edition maintenance repository
 
-GraalVM welcomes contributors to the core platform and projects that extend that
-platform. There have been significant contributions from both industry
-and academia so far and we thank you for considering to contribute your changes!
+The maintenance repository for GraalVM Community Edition welcomes contributions from the community that satisfy the following criteria:
 
-### How to Contribute
+1. The contributor has signed the [Oracle Contributor Agreement](https://oca.opensource.oracle.com/). See https://www.graalvm.org/community/contributors/ for more information.
+2. The contribution contains a) replicas of existing commits applied to the `master` branch in the `oracle/graal` repository or b) patches specific to the maintained version. Such commits are intended to fix or improve existing features, must always keep release stability in mind, and ensure compatibility with published public APIs.
+3. The contribution is considered safe and beneficial for the GraalVM Community Edition. Ideally, the contribution should be solving a reported issue and not be proactive.
 
-- Learn [how to become a GraalVM contributor](https://www.graalvm.org/community/contributors/).
-  - Check individual README.md and CONTRIBUTING.md files in the subprojects to learn how to build and import them into your IDE (for example, [the compiler README.md](compiler/README.md))
-- Subscribe and post to [graalvm-dev@oss.oracle.com](https://oss.oracle.com/mailman/listinfo/graalvm-dev) for questions related to working with the sources or extending the GraalVM ecosystem by creating new languages, tools, or embeddings.
+Please note that feature requests and enhancements are not accepted in this repository. If you have a feature request or enhancement, please open an issue in [GraalVM's main repository](https://github.com/oracle/graal).
 
-### Contributor Roles
+## How to Contribute
 
-There are different roles for contributors of the project. Find a list of current contributors in [CENSUS.md](CENSUS.md).
+### Reporting Bugs
 
-* Committer
-  * Has Signed the [Oracle Contributor Agreement](https://oca.opensource.oracle.com/), which is a prerequisite for contributing to the project
-  * At least one pull request authored by the individual has been merged
+Open a [GitHub issue](https://github.com/graalvm/graalvm-community-jdk25u/issues/new?template=1_community_bug.yml) filling in the template with the necessary information.
 
-* Code Owner
-  * Source code directories contain an OWNERS.toml metadata file to define one or more Code Owners.
-  * If there is no such file, the property of the parent directory is inherited.
-  * A change to the source code must be approved by at least one of the Code Owners.
-  * Large modifications should be discussed with the Technical Area Lead for architectural design before a pull request is created.
+### Fixing Bugs
 
-* Technical Area Lead
-  * Code Owner with primary responsibility for architecture and design of a specific area
-  * Has the ability to veto changes in his area on technical grounds
+1. Make sure an [issue report](https://github.com/graalvm/graalvm-community-jdk25u/issues/new?template=1_community_bug.yml) or [backport request](https://github.com/graalvm/graalvm-community-jdk25u/issues/new?template=0_backport_request.yml) exists in this repository explaining what the problem is and why it should be considered for fixing in the maintenance repository.
+2. Make sure you have signed the [Oracle Contributor Agreement](https://oca.opensource.oracle.com/).
+3. Create a pull request with the fix and reference the issue or backport request in the description.
 
-* Security Lead
-  * Organizes the vulnerability group for sharing security patches
-  * Reviews pull requests for aspects relevant for security
-  * Primary point of contact in case of discussing a potential security vulnerability
+#### Building GraalVM Community Edition
 
-* Developer Advocacy Lead
-  * Manages interactions within the GraalVM Community
-  * Runs the Advisory Board
-  * Primary point of contact for enquiries related to the GraalVM community or community support
+Please refer to the [BUILDING.md](BUILDING.md) file for instructions on how to build GraalVM Community Edition.
 
-* Project Lead
-  * Defines an overall technical direction
-  * Mediates disputes over code ownership
-  * Appoints the Security Lead, Developer Advocacy Lead, and Technical Area Leads
-  * Appointed by Oracle
+#### Running Style Checks
 
-### Backports
+Before submitting a pull request, please run the following [mx](https://github.com/graalvm/mx) command to ensure that your changes comply with the GraalVM Community Edition code style.
 
-For versions of GraalVM with ongoing community maintenance and backport support, a Lead Maintainer is chosen among the project contributors. That lead maintainer is responsible for managing the corresponding community backport repository. See [here](https://github.com/oracle/graal/issues/8935) an example of a call for a lead maintainer.
+```bash
+$ mx --primary-suite vm --env ce checkstyle
+```
 
-### Advisory Board
+#### Backporting Fixes
 
-Apart from source code contributors to the project, there is also a role for advisory board members that discuss project matters and direction as well as drive awareness and adoption of GraalVM technology. Find a description of the advisory board and its current members [here](https://www.graalvm.org/community/advisory-board/).
-
-### Security
-
-Entities interested in sharing reports of vulnerabilities and collaborate on security fixes should contact the Security Lead.
+When backporting bug fixes use `git cherry-pick -x` to reference the original commit in the commit message. Additionally, please reference the upstream pull request that your changes are backporting. If the backport is partial, explain which parts are being backported and why. Similarly, in case of conflicts explain why they are happening and how they are resolved.
