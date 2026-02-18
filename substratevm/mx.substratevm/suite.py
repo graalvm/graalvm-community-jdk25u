@@ -294,8 +294,8 @@ suite = {
             "javaCompliance" : "17+",
             "spotbugsIgnoresGenerated" : True,
             "shadedDependencies" : [
-                "compiler:ASM_9.7.1",
-                "compiler:ASM_TREE_9.7.1",
+                "compiler:ASM_9.8",
+                "compiler:ASM_TREE_9.8",
             ],
             "class" : "ShadedLibraryProject",
             "shade" : {
