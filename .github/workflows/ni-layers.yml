@@ -58,7 +58,7 @@ jobs:
   build-graalvm-and-populate-matrix:
     name: Build GraalVM and populate matrix
     runs-on: ubuntu-latest
-    if: (github.repository=='oracle/graal')
+    if: (github.repository=='graalvm/graalvm-community-jdk25u')
     outputs:
         matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:

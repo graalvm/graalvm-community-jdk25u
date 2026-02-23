@@ -50,7 +50,8 @@ on:
 
 env:
   SPRING_PETCLINIC_PATH: ${{ github.workspace }}/spring-petclinic
-  SPRING_JAVA_VERSION: 21
+  # PetClinic requires Java 17
+  SPRING_JAVA_VERSION: 17
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -59,7 +60,7 @@ jobs:
   build-graalvm-and-spring:
     name: Native Tests
     runs-on: ubuntu-22.04
-    if: (github.event_name == 'schedule' && github.repository == 'oracle/graal') || (github.event_name != 'schedule')
+    if: (github.event_name == 'schedule' && github.repository == 'graalvm/graalvm-community-jdk25u') || (github.event_name != 'schedule')
     steps:
     - name: Checkout oracle/graal
       uses: actions/checkout@v4

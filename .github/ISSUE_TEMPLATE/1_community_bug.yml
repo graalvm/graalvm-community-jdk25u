@@ -38,7 +38,7 @@ body:
       description: "Provide the GraalVM community build you are using."
       placeholder: "Mandrel, Liberica, or other community build"
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: graalvm_version
@@ -47,7 +47,7 @@ body:
       description: "Provide the version of GraalVM used."
       placeholder: "Output of `native-image -version` or `java -version` or commit id if built from source"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: operating_system
@@ -56,7 +56,7 @@ body:
       description: "Provide details of your operating system and version (e.g., output of `uname -a` or Windows version)."
       placeholder: "OS details here"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: architecture
@@ -65,7 +65,7 @@ body:
       description: "Provide details of your system architecture."
       placeholder: "AMD64"
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: additional_context

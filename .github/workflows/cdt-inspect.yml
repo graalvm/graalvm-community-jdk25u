@@ -56,7 +56,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    if: github.repository == 'oracle/graal'
+    if: github.repository == 'graalvm/graalvm-community-jdk25u'
 
     steps:
     - name: Checkout oracle/graal

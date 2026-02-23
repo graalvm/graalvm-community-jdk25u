@@ -74,7 +74,7 @@ on:
 #    cancelled and a new CI job will be queued for the latest (third) push.
 concurrency:
   group: "workflow = ${{ github.workflow }}, ref = ${{ github.event.ref }}, pr = ${{ github.event.pull_request.id }}"
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.repository != 'oracle/graal' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.repository != 'graalvm/graalvm-community-jdk25u' }}
 
 env:
   JAVA_HOME: ${{ github.workspace }}/jdk

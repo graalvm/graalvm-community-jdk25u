@@ -50,7 +50,7 @@ on:
 
 env:
   REACHABILITY_METADATA_PATH: ${{ github.workspace }}/graalvm-reachability-metadata
-  MINIMUM_METADATA_JAVA_VERSION: 17
+  MINIMUM_METADATA_JAVA_VERSION: 21
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -59,7 +59,7 @@ jobs:
   build-graalvm-and-populate-matrix:
     name: Build GraalVM and populate matrix
     runs-on: ubuntu-22.04
-    if: (github.event_name == 'schedule' && github.repository == 'oracle/graal') || (github.event_name != 'schedule')
+    if: (github.event_name == 'schedule' && github.repository == 'graalvm/graalvm-community-jdk25u') || (github.event_name != 'schedule')
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -124,13 +124,12 @@ jobs:
       - name: "Disable docker"
         run: |
           sudo apt-get install openbsd-inetd
-          sudo bash -c "cat ./.github/workflows/discard-port.conf >> /etc/inetd.conf"
+          sudo bash -c "cat ./.github/workflows/scripts/discard-port.conf >> /etc/inetd.conf"
           sudo systemctl start inetd
           sudo mkdir /etc/systemd/system/docker.service.d
-          sudo bash -c "cat ./.github/workflows/dockerd.service > /etc/systemd/system/docker.service.d/http-proxy.conf"
+          sudo bash -c "cat ./.github/workflows/scripts/dockerd.service > /etc/systemd/system/docker.service.d/http-proxy.conf"
           sudo systemctl daemon-reload
           sudo systemctl restart docker
       - name: "Run '${{ matrix.coordinates }}' tests"
         run: |
           ./gradlew test -Pcoordinates=${{ matrix.coordinates }}
-    
