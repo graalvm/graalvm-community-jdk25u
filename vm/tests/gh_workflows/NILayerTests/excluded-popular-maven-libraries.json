@@ -322,5 +322,11 @@
     "artifact_id": "quarkus-junit5",
     "version": "3.14.3",
     "reason": "GR-57711"
+  },
+  {
+    "group_id": "org.liquibase",
+    "artifact_id": "liquibase-core",
+    "version": "4.29.2",
+    "reason": "com.oracle.svm.core.util.UserError$UserException: ImageSingletons do not contain key com.oracle.svm.core.jfr.SubstrateJVM"
   }
 ]

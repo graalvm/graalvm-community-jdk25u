@@ -1740,12 +1740,6 @@
         "rank": 550
     },
     {
-        "group_id": "org.liquibase",
-        "artifact_id": "liquibase-core",
-        "version": "4.29.2",
-        "rank": 552
-    },
-    {
         "group_id": "org.apache.commons",
         "artifact_id": "commons-exec",
         "version": "1.4.0",

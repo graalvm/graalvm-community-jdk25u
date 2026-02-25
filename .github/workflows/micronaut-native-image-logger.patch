@@ -1,0 +1,18 @@
+--- pom.xml	2026-02-24 18:14:28.606728565 +0100
++++ pom.xml	2026-02-24 18:15:18.102016990 +0100
+@@ -70,6 +70,15 @@
+   <build>
+     <plugins>
+       <plugin>
++        <groupId>org.graalvm.buildtools</groupId>
++        <artifactId>native-maven-plugin</artifactId>
++        <configuration>
++          <buildArgs combine.children="append">
++            <buildArg>--initialize-at-build-time=org.junit.platform.commons.logging.LoggerFactory$DelegatingLogger</buildArg>
++          </buildArgs>
++        </configuration>
++      </plugin>
++      <plugin>
+         <groupId>io.micronaut.maven</groupId>
+         <artifactId>micronaut-maven-plugin</artifactId>
+         <configuration>
