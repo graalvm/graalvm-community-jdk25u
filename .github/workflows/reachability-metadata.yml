@@ -116,7 +116,7 @@ jobs:
       - name: "Setup JAVA_HOME"
         uses: actions/setup-java@v4
         with:
-          distribution: 'oracle'
+          distribution: 'temurin'
           java-version: ${{ env.MINIMUM_METADATA_JAVA_VERSION }}
       - name: "Pull allowed docker images"
         run: |
