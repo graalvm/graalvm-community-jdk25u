@@ -110,7 +110,7 @@ jobs:
       - name: "Setup JAVA_HOME"
         uses: actions/setup-java@v4
         with:
-          distribution: 'oracle'
+          distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
       - name: Setup python
         uses: actions/setup-python@v5
