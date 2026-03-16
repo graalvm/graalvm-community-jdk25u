@@ -161,7 +161,7 @@ jobs:
         run: tar -xzf maven-repo.tgz -C ~
       - uses: actions/setup-java@v4
         with:
-          distribution: 'oracle'
+          distribution: 'temurin'
           java-version: '17'
       - name: Build with Maven
         if: startsWith(matrix.os-name, 'ubuntu')
