@@ -221,9 +221,6 @@ public final class HeapImpl extends Heap {
         chunkProvider.tearDown();
         gcImpl.tearDown();
 
-        if (Metaspace.isSupported()) {
-            MetaspaceImpl.singleton().tearDown();
-        }
         return true;
     }
 

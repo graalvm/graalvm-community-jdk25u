@@ -140,12 +140,6 @@ public class SubstrateGCOptions {
 
     @DuplicatedInNativeCode
     public static class TlabOptions {
-        @Option(help = "Use thread-local object allocation.", type = OptionType.Expert)//
-        public static final HostedOptionKey<Boolean> UseTLAB = new HostedOptionKey<>(true);
-
-        @Option(help = "Dynamically resize TLAB size for threads.", type = OptionType.Expert)//
-        public static final RuntimeOptionKey<Boolean> ResizeTLAB = new RuntimeOptionKey<>(true, IsolateCreationOnly);
-
         @Option(help = "Minimum allowed TLAB size (in bytes).", type = OptionType.Expert)//
         public static final RuntimeOptionKey<Long> MinTLABSize = new RuntimeOptionKey<>(2L * K, RegisterForIsolateArgumentParser);
 

@@ -28,7 +28,6 @@ import static com.oracle.svm.core.genscavenge.CollectionPolicy.shouldCollectYoun
 
 import org.graalvm.word.UnsignedWord;
 
-import com.oracle.svm.core.Isolates;
 import com.oracle.svm.core.heap.GCCause;
 import com.oracle.svm.core.thread.VMOperation;
 import com.oracle.svm.core.util.BasedOnJDKFile;

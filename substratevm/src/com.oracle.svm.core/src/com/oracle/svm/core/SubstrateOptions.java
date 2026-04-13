@@ -92,6 +92,8 @@ import jdk.graal.compiler.phases.common.DeadCodeEliminationPhase;
 import jdk.internal.misc.Unsafe;
 import jdk.vm.ci.amd64.AMD64;
 
+import jdk.graal.compiler.asm.amd64.AMD64Assembler;
+
 public class SubstrateOptions {
 
     @Option(help = "Deprecated, option no longer has any effect.", deprecated = true, deprecationMessage = "It no longer has any effect, and no replacement is available")//
@@ -397,7 +399,7 @@ public class SubstrateOptions {
          */
         GraalOptions.LoopHeaderAlignment.update(values, 0);
         GraalOptions.IsolatedLoopHeaderAlignment.update(values, 0);
-                
+
         // We cannot check for architecture at the moment because ImageSingletons has not been
         // initialized yet
         disable(AMD64Assembler.Options.UseBranchesWithin32ByteBoundary, values);
