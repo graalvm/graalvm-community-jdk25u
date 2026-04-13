@@ -386,13 +386,13 @@ public class NativeGCOptions {
 
         public void putPrimitive(Object value) {
             long rawLong = switch (value) {
-                case Boolean _ -> ((boolean) value) ? 1L : 0L;
-                case Byte _ -> ((byte) value) & 0xFFL;
-                case Character _ -> ((char) value) & 0xFFFFL;
-                case Short _ -> ((short) value) & 0xFFFFL;
-                case Integer _ -> ((int) value) & 0xFFFFFFFFL;
-                case Long _ -> (long) value;
-                case Double _ -> Double.doubleToLongBits((double) value);
+                case Boolean _x -> ((boolean) value) ? 1L : 0L;
+                case Byte _x -> ((byte) value) & 0xFFL;
+                case Character _x -> ((char) value) & 0xFFFFL;
+                case Short _x -> ((short) value) & 0xFFFFL;
+                case Integer _x -> ((int) value) & 0xFFFFFFFFL;
+                case Long _x -> (long) value;
+                case Double _x -> Double.doubleToLongBits((double) value);
                 default -> throw VMError.shouldNotReachHere("Unexpected type: " + value.getClass());
             };
 

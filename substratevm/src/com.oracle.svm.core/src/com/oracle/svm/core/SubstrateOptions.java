@@ -92,6 +92,8 @@ import jdk.graal.compiler.phases.common.DeadCodeEliminationPhase;
 import jdk.internal.misc.Unsafe;
 import jdk.vm.ci.amd64.AMD64;
 
+import jdk.graal.compiler.asm.amd64.AMD64Assembler;
+
 public class SubstrateOptions {
 
     @Option(help = "Deprecated, option no longer has any effect.", deprecated = true, deprecationMessage = "It no longer has any effect, and no replacement is available")//
