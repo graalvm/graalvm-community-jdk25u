@@ -31,7 +31,6 @@ import static com.oracle.svm.core.graal.code.SubstrateBackend.SubstrateMarkId.PR
 import static com.oracle.svm.core.util.VMError.shouldNotReachHere;
 import static com.oracle.svm.core.util.VMError.unsupportedFeature;
 import static jdk.graal.compiler.lir.LIRInstruction.OperandFlag.REG;
-import static jdk.graal.compiler.lir.LIRValueUtil.asConstantValue;
 import static jdk.graal.compiler.lir.LIRValueUtil.differentRegisters;
 import static jdk.vm.ci.amd64.AMD64.rax;
 import static jdk.vm.ci.amd64.AMD64.rbp;
@@ -627,6 +626,18 @@ public class SubstrateAMD64Backend extends SubstrateBackend implements LIRGenera
 
         public SubstrateAMD64LIRGenerator(LIRKindTool lirKindTool, AMD64ArithmeticLIRGenerator arithmeticLIRGen, MoveFactory moveFactory, Providers providers, LIRGenerationResult lirGenRes) {
             super(lirKindTool, arithmeticLIRGen, null, moveFactory, providers, lirGenRes);
+        }
+
+        @Override
+        public void emitStrategySwitch(SwitchStrategy strategy, AllocatableValue key, LabelRef[] keyTargets, LabelRef defaultTarget) {
+            boolean needsTemp = !LIRKind.isValue(key);
+            append(new SubstrateAMD64StrategySwitchOp(strategy, keyTargets, defaultTarget, key, needsTemp ? newVariable(key.getValueKind()) : Value.ILLEGAL));
+        }
+
+        @Override
+        protected jdk.graal.compiler.lir.amd64.AMD64ControlFlow.StrategySwitchOp createStrategySwitchOp(SwitchStrategy strategy, LabelRef[] keyTargets, LabelRef defaultTarget,
+                        AllocatableValue key, AllocatableValue temp) {
+            return new SubstrateAMD64StrategySwitchOp(strategy, keyTargets, defaultTarget, key, temp);
         }
 
         @Override
@@ -1455,6 +1466,30 @@ public class SubstrateAMD64Backend extends SubstrateBackend implements LIRGenera
         }
     }
 
+    public static final class SubstrateAMD64StrategySwitchOp extends jdk.graal.compiler.lir.amd64.AMD64ControlFlow.StrategySwitchOp {
+        public static final LIRInstructionClass<SubstrateAMD64StrategySwitchOp> TYPE = LIRInstructionClass.create(SubstrateAMD64StrategySwitchOp.class);
+
+        private SubstrateAMD64StrategySwitchOp(SwitchStrategy strategy, LabelRef[] keyTargets, LabelRef defaultTarget, AllocatableValue key, AllocatableValue scratch) {
+            super(TYPE, strategy, keyTargets, defaultTarget, key, scratch);
+        }
+
+        @Override
+        protected void emitObjectComparison(CompilationResultBuilder crb, AMD64MacroAssembler masm, Register keyRegister, Register scratchRegister, JavaConstant jc) {
+            if (ReferenceAccess.singleton().haveCompressedReferences() && jc instanceof CompressibleConstant constant && !jc.isNull()) {
+                /*
+                 * Strategy-switch object keys are uncompressed hub references, so compressed object
+                 * constants must be uncompressed before the pointer compare.
+                 */
+                assert !constant.isCompressed() : constant;
+                SubstrateAMD64MoveFactory.LoadCompressedObjectConstantOp.emitLoadObjectConstant(crb, masm, scratchRegister, constant, ReservedRegisters.singleton().getHeapBaseRegister(),
+                                getCompressEncoding().getShift());
+                masm.cmpptr(keyRegister, scratchRegister);
+            } else {
+                super.emitObjectComparison(crb, masm, keyRegister, scratchRegister, jc);
+            }
+        }
+    }
+
     protected static class SubstrateAMD64MoveFactory extends AMD64MoveFactory {
 
         private final SharedMethod method;
@@ -1569,9 +1604,12 @@ public class SubstrateAMD64Backend extends SubstrateBackend implements LIRGenera
                 /*
                  * WARNING: must NOT have side effects. Preserve the flags register!
                  */
-                Register resultReg = getResultRegister();
+                emitLoadObjectConstant(crb, masm, getResultRegister(), constant, getBaseRegister(), getShift());
+            }
+
+            static void emitLoadObjectConstant(CompilationResultBuilder crb, AMD64MacroAssembler masm, Register resultReg, CompressibleConstant constant, Register baseReg, int shift) {
                 int referenceSize = ConfigurationValues.getObjectLayout().getReferenceSize();
-                Constant inputConstant = asConstantValue(getInput()).getConstant();
+                Constant inputConstant = asCompressed(constant);
                 if (masm.inlineObjects()) {
                     crb.recordInlineDataInCode(inputConstant);
                     if (referenceSize == 4) {
@@ -1588,9 +1626,8 @@ public class SubstrateAMD64Backend extends SubstrateBackend implements LIRGenera
                     }
                 }
                 if (!constant.isCompressed()) { // the result is expected to be uncompressed
-                    Register baseReg = getBaseRegister();
                     boolean preserveFlagsRegister = true;
-                    emitUncompressWithBaseRegister(masm, resultReg, baseReg, getShift(), preserveFlagsRegister);
+                    emitUncompressWithBaseRegister(masm, resultReg, baseReg, shift, preserveFlagsRegister);
                 }
             }
 
