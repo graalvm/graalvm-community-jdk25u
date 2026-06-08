@@ -23,18 +23,15 @@ The SBOM feature can be disabled with `--enable-sbom=false`.
 
 ## Extracting SBOM Contents
 
-After embedding the compressed SBOM into the executable, the [Native Image Inspect Tool](../reference-manual/native-image/InspectTool.md) is able to extract the compressed SBOM using the `--sbom` parameter accessible through `$JAVA_HOME/bin/native-image-inspect --sbom <path_to_binary>` from both executables and shared libraries.
-It outputs the SBOM in the following format:
-
-After embedding the compressed SBOM into the image, there are two possible ways to extract the SBOM contents:
-- using the [Native Image Inspect Tool](../reference-manual/native-image/InspectTool.md)
+For native images with an embedded SBOM, there are two possible ways to extract the SBOM contents:
+- using the [Native Image Configure Tool](#native-image-configure-tool)
 - using [Syft](https://github.com/anchore/syft){:target="_blank"}
 
-### Native Image Inspect Tool
+### Native Image Configure Tool
 
-The [Native Image Inspect Tool](../reference-manual/native-image/InspectTool.md) is able to extract the compressed SBOM using the `--sbom` parameter, accessible from both executables and shared libraries:
+The Native Image Utils Tool can extract the compressed SBOM using the `extract-sbom` command from native executables and shared libraries.
 ```bash
-native-image-inspect --sbom <path_to_binary>
+native-image-configure extract-sbom --image-path=<path_to_binary>
 ```
 
 It outputs the contents in the JSON format:

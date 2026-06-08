@@ -70,14 +70,14 @@ syft jwebserver
 ```
 It lists all of the Java libraries included in it.
 
-### Native Image Inspect Tool
+### Native Image Configure Tool
 
-GraalVM Native Image provides the [Inspect Tool](../InspectTool.md) to retrieve an SBOM embedded in a native executable. 
-The Inspect Tool is a viable alternative if you prefer not to install `syft`.
+The `native-image-configure extract-sbom` command retrieves an SBOM embedded in a native executable or shared library that follows the [Native Image SBOM specification](https://www.graalvm.org/dev/security-guide/native-image/sbom/){:target="_blank"}.
+The tool is a viable alternative if you prefer not to install `syft`.
 
-Run the following command to read the SBOM contents using the Inspect Tool:
+Run the following command to read the SBOM contents embedded in a native image:
 ```bash
-native-image-inspect --sbom jwebserver
+native-image-configure extract-sbom --image-path=./jwebserver
 ```
 
 To take it further, you can submit the SBOM to any available vulnerability scanner, and check if the recorded libraries have known security vulnerabilities. 
