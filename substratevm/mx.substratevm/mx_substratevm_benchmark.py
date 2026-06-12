@@ -38,7 +38,7 @@ from typing import List, Optional
 import mx
 import mx_benchmark
 import mx_sdk_benchmark
-from mx_benchmark import BenchmarkSuite, DataPoints, Rule, Vm, SingleBenchmarkExecutionContext
+from mx_benchmark import bm_exec_context, DataPoints, SingleBenchmarkManager
 from mx._impl.mx_codeowners import _load_toml_from_fd
 from mx_sdk_benchmark import SUCCESSFUL_STAGE_PATTERNS, Layer, StageName, parse_prefixed_args
 
@@ -370,7 +370,8 @@ class BaristaNativeImageBenchmarkSuite(mx_sdk_benchmark.BaristaBenchmarkSuite, m
         return []
 
     def run(self, benchmarks, bmSuiteArgs) -> mx_benchmark.DataPoints:
-        return self.intercept_run(super(), benchmarks, bmSuiteArgs)
+        with SingleBenchmarkManager(self):
+            return self.intercept_run(super(), benchmarks, bmSuiteArgs)
 
     def ensure_image_is_at_desired_location(self, bmSuiteArgs):
         if self.stages_info.current_stage.is_image() and self.application_fixed_image_name() is not None:
@@ -417,7 +418,7 @@ class BaristaNativeImageBenchmarkSuite(mx_sdk_benchmark.BaristaBenchmarkSuite, m
             In the case of `instrument-run`, retrieves the image built during `instrument-image`.
             In the case of `run`, retrieves the image built during `image`.
             """
-            vm = suite.execution_context.virtual_machine
+            vm = bm_exec_context().get("vm")
             if stage.stage_name == StageName.INSTRUMENT_RUN:
                 return vm.config.instrumented_image_path
             else:
@@ -446,6 +447,7 @@ class BaristaNativeImageBenchmarkSuite(mx_sdk_benchmark.BaristaBenchmarkSuite, m
                 raise TypeError(f"Expected an instance of {BaristaNativeImageBenchmarkSuite.__name__}, instead got an instance of {suite.__class__.__name__}")
 
             stage = suite.stages_info.current_stage
+            bm_suite_args = bm_exec_context().get("bm_suite_args")
             if stage.is_agent():
                 # BaristaCommand works for agent stage, since it's a JVM stage
                 cmd = self.produce_JVM_harness_command(cmd, suite)
@@ -453,8 +455,8 @@ class BaristaNativeImageBenchmarkSuite(mx_sdk_benchmark.BaristaBenchmarkSuite, m
                 cmd += self._short_load_testing_phases()
                 # Add explicit agent stage args
                 cmd += suite._extra_run_options
-                cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-jvm-arg=", suite.execution_context.bmSuiteArgs)
-                cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-agent-run-arg=", suite.execution_context.bmSuiteArgs)
+                cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-jvm-arg=", bm_suite_args)
+                cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-agent-run-arg=", bm_suite_args)
                 return cmd
 
             # Extract app image options and command prefix from the NativeImageVM command
@@ -475,18 +477,18 @@ class BaristaNativeImageBenchmarkSuite(mx_sdk_benchmark.BaristaBenchmarkSuite, m
             ni_barista_cmd = [suite.baristaHarnessPath(), "--mode", "native", "--app-executable", app_image]
             if barista_workload is not None:
                 ni_barista_cmd.append(f"--config={barista_workload}")
-            ni_barista_cmd += suite.runArgs(suite.execution_context.bmSuiteArgs) + suite._extra_run_options
-            ni_barista_cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-jvm-arg=", suite.execution_context.bmSuiteArgs)
+            ni_barista_cmd += suite.runArgs(bm_suite_args) + suite._extra_run_options
+            ni_barista_cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-jvm-arg=", bm_suite_args)
             if stage.is_instrument():
                 # Make instrument run short
                 ni_barista_cmd += self._short_load_testing_phases()
-                if suite.execution_context.benchmark == "play-scala-hello-world":
+                if bm_exec_context().get("benchmark") == "play-scala-hello-world":
                     self._updateCommandOption(ni_barista_cmd, "--vm-options", "-v", "-Dpidfile.path=/dev/null")
                 # Add explicit instrument stage args
-                ni_barista_cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-profile-run-arg=", suite.execution_context.bmSuiteArgs) or parse_prefixed_args("-Dnative-image.benchmark.extra-run-arg=", suite.execution_context.bmSuiteArgs)
+                ni_barista_cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-profile-run-arg=", bm_suite_args) or parse_prefixed_args("-Dnative-image.benchmark.extra-run-arg=", bm_suite_args)
             else:
                 # Add explicit run stage args
-                ni_barista_cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-run-arg=", suite.execution_context.bmSuiteArgs)
+                ni_barista_cmd += parse_prefixed_args("-Dnative-image.benchmark.extra-run-arg=", bm_suite_args)
             if nivm_cmd_prefix:
                 self._updateCommandOption(ni_barista_cmd, "--cmd-app-prefix", "-p", " ".join(nivm_cmd_prefix))
             if nivm_app_options:
@@ -655,8 +657,9 @@ class GraalOSNativeImageBenchmarkSuite(mx_benchmark.CustomHarnessBenchmarkSuite,
         # Verify 'gos-scenario' command is installed
         self._check_if_gos_scenario_command_is_installed()
 
-    def new_execution_context(self, vm: Vm, benchmarks: List[str], bmSuiteArgs: List[str]) -> SingleBenchmarkExecutionContext:
-        return SingleBenchmarkExecutionContext(self, vm, benchmarks, bmSuiteArgs)
+    def run(self, benchmarks, bmSuiteArgs) -> DataPoints:
+        with SingleBenchmarkManager(self):
+            return super().run(benchmarks, bmSuiteArgs)
 
     def default_stages(self) -> List[str]:
         return ["instrument-image", "instrument-run", "image", "run"]
@@ -806,7 +809,7 @@ class GraalOSNativeImageBenchmarkSuite(mx_benchmark.CustomHarnessBenchmarkSuite,
                 raise TypeError(f"Expected an instance of {GraalOSNativeImageBenchmarkSuite.__name__},"
                                 f" instead got an instance of {suite.__class__.__name__}")
             scenario = suite._get_scenario_path(suite.benchmarkName())
-            bmSuiteArgs = suite.execution_context.bmSuiteArgs
+            bmSuiteArgs = bm_exec_context().get("bm_suite_args")
 
             original_app_image = str(suite._get_built_app_image())
             try:
