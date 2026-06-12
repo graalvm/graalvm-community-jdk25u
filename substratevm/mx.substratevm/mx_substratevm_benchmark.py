@@ -38,7 +38,7 @@ from typing import List, Optional
 import mx
 import mx_benchmark
 import mx_sdk_benchmark
-from mx_benchmark import bm_exec_context, Rule, DataPoints, SingleBenchmarkManager
+from mx_benchmark import bm_exec_context, BenchmarkSuite, Rule, DataPoints, SingleBenchmarkManager
 from mx._impl.mx_codeowners import _load_toml_from_fd
 from mx_sdk_benchmark import SUCCESSFUL_STAGE_PATTERNS, Layer, StageName, parse_prefixed_args
 
