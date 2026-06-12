@@ -659,7 +659,7 @@ class GraalOSNativeImageBenchmarkSuite(mx_benchmark.CustomHarnessBenchmarkSuite,
 
     def run(self, benchmarks, bmSuiteArgs) -> DataPoints:
         with SingleBenchmarkManager(self):
-            return super().run(benchmarks, bmSuiteArgs)
+            return self.intercept_run(super(), benchmarks, bmSuiteArgs)
 
     def default_stages(self) -> List[str]:
         return ["instrument-image", "instrument-run", "image", "run"]
@@ -798,9 +798,6 @@ class GraalOSNativeImageBenchmarkSuite(mx_benchmark.CustomHarnessBenchmarkSuite,
             accessible_app_image_path = Path("/") / "opt" / "preinstalled" / "applications" / original_app_image_path.name
             return accessible_app_image_path
         return original_app_image_path
-
-    def run(self, benchmarks, bmSuiteArgs) -> DataPoints:
-        return self.intercept_run(super(), benchmarks, bmSuiteArgs)
 
     class GraalOSLoadTesterCommand(mx_benchmark.CustomHarnessCommand):
         """Maps the command produced by NativeImageVM into a command tailored for the `graalos-load-tester` harness."""
