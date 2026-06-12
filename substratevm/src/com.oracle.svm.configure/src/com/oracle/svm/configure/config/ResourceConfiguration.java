@@ -310,7 +310,7 @@ public final class ResourceConfiguration extends ConfigurationBase<ResourceConfi
 
     private BundleConfiguration getOrCreateBundleConfig(UnresolvedConfigurationCondition condition, String baseName) {
         ConditionalElement<String> key = new ConditionalElement<>(condition, baseName);
-        return bundles.computeIfAbsent(key, cond -> new BundleConfiguration(condition, baseName));
+        return bundles.computeIfAbsent(key, _ -> new BundleConfiguration(condition, baseName));
     }
 
     public boolean anyResourceMatches(String s) {

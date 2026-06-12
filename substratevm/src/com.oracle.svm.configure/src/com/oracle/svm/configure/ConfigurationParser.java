@@ -170,7 +170,7 @@ public abstract class ConfigurationParser {
         if (unknownAttributes.size() > 0) {
             String message = "Unknown attribute(s) [" + String.join(", ", unknownAttributes) + "] in " + type;
             warnOrFailOnSchemaError(message);
-            Set<String> unknownAttributesForType = seenUnknownAttributesByType.computeIfAbsent(type, key -> new HashSet<>());
+            Set<String> unknownAttributesForType = seenUnknownAttributesByType.computeIfAbsent(type, _ -> new HashSet<>());
             unknownAttributesForType.addAll(unknownAttributes);
         }
     }
