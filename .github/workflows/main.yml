@@ -170,14 +170,14 @@ jobs:
       MX_RUNS_STYLE: ${{ contains(matrix.env.GATE_TAGS, 'style') || matrix.env.GATE_TAGS == '' }}
     steps:
     - name: Checkout graalvm-community-25u/master
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         ref: ${{ github.ref }} # Lock ref to current branch to avoid fetching others
         fetch-depth: "${{ env.MX_RUNS_STYLE && '0' || '1' }}" # The style gate needs the full commit history for checking copyright years
     - name: Determine mx version
       run: echo "MX_VERSION=$(jq -r '.mx_version' common.json)" >> ${GITHUB_ENV}
     - name: Checkout graalvm/mx
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         repository: graalvm/mx.git
         ref: ${{ env.MX_VERSION }}
@@ -247,14 +247,14 @@ jobs:
       PYTHONIOENCODING: 'utf-8'
     steps:
     - name: Checkout graalvm-community-jdk25u/master
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         ref: ${{ github.ref }} # Lock ref to current branch to avoid fetching others
     - name: Determine mx version
       shell: bash
       run: echo "MX_VERSION=$(jq -r '.mx_version' common.json)" >> ${GITHUB_ENV}
     - name: Checkout graalvm/mx
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         repository: graalvm/mx.git
         ref: ${{ env.MX_VERSION }}
