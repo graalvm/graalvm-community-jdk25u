@@ -110,11 +110,12 @@ public class ReferenceAccessImpl implements ReferenceAccess {
     @Fold
     @Override
     public UnsignedWord getMaxAddressSpaceSize() {
-        int compressionShift = ReferenceAccess.singleton().getCompressEncoding().getShift();
-        if (compressionShift > 0) {
-            int referenceSize = ConfigurationValues.getObjectLayout().getReferenceSize();
+        int referenceSize = ConfigurationValues.getObjectLayout().getReferenceSize();
+        if (referenceSize == Integer.BYTES) {
+            int compressionShift = ReferenceAccess.singleton().getCompressEncoding().getShift();
             return Word.unsigned(1L << (referenceSize * Byte.SIZE)).shiftLeft(compressionShift);
         }
+        assert referenceSize == Long.BYTES;
         // Assume that 48 bit is the maximum address space that can be used.
         return Word.unsigned((1L << 48) - 1);
     }
