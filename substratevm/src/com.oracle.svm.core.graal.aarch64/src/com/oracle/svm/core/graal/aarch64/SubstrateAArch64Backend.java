@@ -1201,12 +1201,10 @@ public class SubstrateAArch64Backend extends SubstrateBackend implements LIRGene
     }
 
     protected static class SubstrateAArch64MoveFactory extends AArch64MoveFactory {
-
         private final SharedMethod method;
         private final LIRKindTool lirKindTool;
 
-        protected SubstrateAArch64MoveFactory(SharedMethod method, LIRKindTool lirKindTool) {
-            super();
+        SubstrateAArch64MoveFactory(SharedMethod method, LIRKindTool lirKindTool) {
             this.method = method;
             this.lirKindTool = lirKindTool;
         }
@@ -1416,7 +1414,8 @@ public class SubstrateAArch64Backend extends SubstrateBackend implements LIRGene
     protected static class SubstrateAArch64LIRKindTool extends AArch64LIRKindTool implements AArch64SimdLIRKindTool {
         @Override
         public LIRKind getNarrowOopKind() {
-            return LIRKind.compressedReference(AArch64Kind.QWORD);
+            PlatformKind kind = SubstrateOptions.useCompressedReferences() ? AArch64Kind.DWORD : AArch64Kind.QWORD;
+            return LIRKind.compressedReference(kind);
         }
 
         @Override

@@ -104,21 +104,40 @@ public class HostedConfiguration {
         }
     }
 
-    public static void setDefaultIfEmpty() {
+    static void setDefaultIfEmpty() {
         setInstanceIfEmpty(new HostedConfiguration());
-        if (!ImageSingletons.contains(CompressEncoding.class)) {
-            CompressEncoding compressEncoding = new CompressEncoding(SubstrateOptions.SpawnIsolates.getValue() ? 1 : 0, 0);
-            ImageSingletons.add(CompressEncoding.class, compressEncoding);
 
+        if (!ImageSingletons.contains(CompressEncoding.class)) {
+            ImageSingletons.add(CompressEncoding.class, createCompressEncoding());
+        }
+
+        if (!ImageSingletons.contains(ObjectLayout.class)) {
             ObjectLayout objectLayout = createObjectLayout(IdentityHashMode.TYPE_SPECIFIC);
             ImageSingletons.add(ObjectLayout.class, objectLayout);
+        }
 
+        if (!ImageSingletons.contains(HybridLayoutSupport.class)) {
             ImageSingletons.add(HybridLayoutSupport.class, new HybridLayoutSupport());
         }
     }
 
+    private static CompressEncoding createCompressEncoding() {
+        // The actual non-zero base is kept in a register.
+        int compressBase = SubstrateOptions.SpawnIsolates.getValue() ? 1 : 0;
+        int compressShift = 0;
+        if (SubstrateOptions.useCompressedReferences() && SubstrateOptions.ConcealedOptions.UseCompressedReferenceShift.getValue()) {
+            // 8-byte object alignment, three object header bits
+            compressShift = 3;
+        }
+        return new CompressEncoding(compressBase, compressShift);
+    }
+
     public static ObjectLayout createObjectLayout(IdentityHashMode identityHashMode) {
-        return createObjectLayout(JavaKind.Object, identityHashMode);
+        JavaKind referenceKind = JavaKind.Object;
+        if (SubstrateOptions.useCompressedReferences()) {
+            referenceKind = JavaKind.Int;
+        }
+        return createObjectLayout(referenceKind, identityHashMode);
     }
 
     /**
@@ -128,15 +147,15 @@ public class HostedConfiguration {
      *
      * The layout of instance objects is:
      * <ul>
-     * <li>64 bit hub reference</li>
+     * <li>32/64 bit hub reference</li>
      * <li>instance fields (references, primitives)</li>
-     * <li>64 bit object monitor reference (if needed)</li>
+     * <li>32/64 bit object monitor reference (if needed)</li>
      * <li>32 bit identity hashcode (if needed)</li>
      * </ul>
      *
      * The layout of array objects is:
      * <ul>
-     * <li>64 bit hub reference</li>
+     * <li>32/64 bit hub reference</li>
      * <li>32 bit identity hashcode</li>
      * <li>32 bit array length</li>
      * <li>array elements (length * elementSize)</li>
