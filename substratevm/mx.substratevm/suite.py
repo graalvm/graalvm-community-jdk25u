@@ -453,7 +453,6 @@ suite = {
             "subDir": "src",
             "sourceDirs": ["src"],
             "dependencies": [
-                "com.oracle.graal.pointsto",
                 "com.oracle.svm.core",
             ],
             "requiresConcealed" : {
