@@ -24,6 +24,10 @@
  */
 package com.oracle.svm.graal.meta;
 
+import static com.oracle.svm.core.util.VMError.shouldNotReachHereAtRuntime;
+
+import java.lang.reflect.Array;
+
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.word.SignedWord;
@@ -36,6 +40,7 @@ import com.oracle.svm.core.annotate.TargetClass;
 import com.oracle.svm.core.graal.meta.SharedConstantReflectionProvider;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.hub.DynamicHub;
+import com.oracle.svm.core.meta.ObjectConstantEquality;
 import com.oracle.svm.core.meta.SubstrateObjectConstant;
 import com.oracle.svm.core.snippets.KnownIntrinsics;
 
@@ -46,6 +51,7 @@ import jdk.vm.ci.meta.JavaConstant;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.MemoryAccessProvider;
 import jdk.vm.ci.meta.MetaAccessProvider;
+import jdk.vm.ci.meta.MethodHandleAccessProvider;
 import jdk.vm.ci.meta.ResolvedJavaField;
 import jdk.vm.ci.meta.ResolvedJavaType;
 
@@ -55,6 +61,66 @@ public class SubstrateConstantReflectionProvider extends SharedConstantReflectio
     @Platforms(Platform.HOSTED_ONLY.class)
     public SubstrateConstantReflectionProvider(SubstrateMetaAccess metaAccess) {
         this.metaAccess = metaAccess;
+    }
+
+    @Override
+    public boolean canRepresentAsImageHeapOffset(JavaConstant constant) {
+        return getImageHeapOffset(constant) != 0;
+    }
+
+    @Override
+    public Boolean constantEquals(Constant x, Constant y) {
+        if (x == y) {
+            return true;
+        } else if (x instanceof SubstrateObjectConstant) {
+            return y instanceof SubstrateObjectConstant && ObjectConstantEquality.get().test((SubstrateObjectConstant) x, (SubstrateObjectConstant) y);
+        } else {
+            return x.equals(y);
+        }
+    }
+
+    @Override
+    public Integer readArrayLength(JavaConstant array) {
+        if (array.getJavaKind() != JavaKind.Object || array.isNull() || !SubstrateObjectConstant.asObject(array).getClass().isArray()) {
+            return null;
+        }
+        return Array.getLength(SubstrateObjectConstant.asObject(array));
+    }
+
+    @Override
+    public JavaConstant readArrayElement(JavaConstant array, int index) {
+        if (array.getJavaKind() != JavaKind.Object || array.isNull()) {
+            return null;
+        }
+
+        Object a = SubstrateObjectConstant.asObject(array);
+        if (!a.getClass().isArray() || index < 0 || index >= Array.getLength(a)) {
+            return null;
+        }
+
+        if (a instanceof Object[]) {
+            return SubstrateObjectConstant.forObject(((Object[]) a)[index]);
+        } else {
+            return JavaConstant.forBoxedPrimitive(Array.get(a, index));
+        }
+    }
+
+    @Override
+    public JavaConstant unboxPrimitive(JavaConstant source) {
+        if (!source.getJavaKind().isObject()) {
+            return null;
+        }
+        return JavaConstant.forBoxedPrimitive(SubstrateObjectConstant.asObject(source));
+    }
+
+    @Override
+    public JavaConstant forString(String value) {
+        return SubstrateObjectConstant.forObject(value);
+    }
+
+    @Override
+    public MethodHandleAccessProvider getMethodHandleAccess() {
+        throw shouldNotReachHereAtRuntime(); // ExcludeFromJacocoGeneratedReport
     }
 
     @Override

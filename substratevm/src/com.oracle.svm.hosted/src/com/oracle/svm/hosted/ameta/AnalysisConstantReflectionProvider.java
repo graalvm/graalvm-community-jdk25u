@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,6 +44,7 @@ import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.svm.core.classinitialization.TypeReachedProvider;
+import com.oracle.svm.core.graal.meta.SharedConstantReflectionProvider;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.SVMHost;
@@ -51,9 +52,7 @@ import com.oracle.svm.hosted.classinitialization.ClassInitializationSupport;
 import com.oracle.svm.hosted.classinitialization.SimulateClassInitializerSupport;
 import com.oracle.svm.hosted.meta.PatchedWordConstant;
 
-import jdk.graal.compiler.nodes.spi.IdentityHashCodeProvider;
 import jdk.vm.ci.meta.Constant;
-import jdk.vm.ci.meta.ConstantReflectionProvider;
 import jdk.vm.ci.meta.JavaConstant;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.MemoryAccessProvider;
@@ -62,7 +61,7 @@ import jdk.vm.ci.meta.ResolvedJavaField;
 import jdk.vm.ci.meta.ResolvedJavaType;
 
 @Platforms(Platform.HOSTED_ONLY.class)
-public class AnalysisConstantReflectionProvider implements ConstantReflectionProvider, IdentityHashCodeProvider, TypeReachedProvider {
+public class AnalysisConstantReflectionProvider extends SharedConstantReflectionProvider implements TypeReachedProvider {
     private final AnalysisUniverse universe;
     protected final UniverseMetaAccess metaAccess;
     private final AnalysisMethodHandleAccessProvider methodHandleAccess;
@@ -75,6 +74,20 @@ public class AnalysisConstantReflectionProvider implements ConstantReflectionPro
         this.metaAccess = metaAccess;
         this.methodHandleAccess = new AnalysisMethodHandleAccessProvider(universe);
         this.classInitializationSupport = classInitializationSupport;
+    }
+
+    @Override
+    public boolean canRepresentAsImageHeapOffset(JavaConstant constant) {
+        /*
+         * Relocatable constants are placeholders patched during execution startup rather than
+         * ordinary image heap constants whose offsets can be patched after image heap layout.
+         */
+        return constant instanceof ImageHeapConstant && !(constant instanceof ImageHeapRelocatableConstant);
+    }
+
+    @Override
+    public int getImageHeapOffset(JavaConstant constant) {
+        throw VMError.shouldNotReachHere("Image heap offsets are only available during JIT compilation at run time: " + getClass().getName());
     }
 
     @Override
@@ -208,11 +221,6 @@ public class AnalysisConstantReflectionProvider implements ConstantReflectionPro
         return readValue((AnalysisField) field, receiver, false, false);
     }
 
-    @Override
-    public JavaConstant boxPrimitive(JavaConstant source) {
-        throw VMError.intentionallyUnimplemented();
-    }
-
     public JavaConstant readValue(AnalysisField field, JavaConstant receiver, boolean returnSimulatedValues, boolean readRelocatableValues) {
         if (!field.isStatic()) {
             if (!(receiver instanceof ImageHeapInstance imageHeapInstance) || !field.getDeclaringClass().isAssignableFrom(imageHeapInstance.getType())) {
@@ -314,15 +322,6 @@ public class AnalysisConstantReflectionProvider implements ConstantReflectionPro
     @Override
     public JavaConstant asJavaClass(ResolvedJavaType type) {
         return universe.getHeapScanner().createImageHeapConstant(getHostVM().dynamicHub(type), ObjectScanner.OtherReason.UNKNOWN);
-    }
-
-    @Override
-    public Constant asObjectHub(ResolvedJavaType type) {
-        /*
-         * Substrate VM does not distinguish between the hub and the Class, they are both
-         * represented by the DynamicHub.
-         */
-        return asJavaClass(type);
     }
 
     @Override

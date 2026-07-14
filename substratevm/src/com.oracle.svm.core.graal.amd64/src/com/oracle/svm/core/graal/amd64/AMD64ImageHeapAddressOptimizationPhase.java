@@ -33,11 +33,9 @@ import java.util.ListIterator;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
-import com.oracle.graal.pointsto.heap.ImageHeapRelocatableConstant;
 import com.oracle.svm.core.Isolates;
 import com.oracle.svm.core.ReservedRegisters;
 import com.oracle.svm.core.SubstrateOptions;
-import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.graal.meta.SharedConstantReflectionProvider;
@@ -124,19 +122,7 @@ class AMD64ImageHeapAddressOptimizationPhase extends BasePhase<CoreProviders> {
     }
 
     static boolean canOptimize(CompressibleConstant constant, ConstantReflectionProvider constantReflection) {
-        if (!phaseEnabled()) {
-            return false;
-
-        } else if (SubstrateUtil.HOSTED) {
-            /*
-             * ImageHeapRelocatableConstants are placeholders for values patched during execution
-             * startup and hence are not compatible with this optimization.
-             */
-            return !(constant instanceof ImageHeapRelocatableConstant);
-
-        } else {
-            return ((SharedConstantReflectionProvider) constantReflection).getImageHeapOffset(constant) != 0;
-        }
+        return phaseEnabled() && ((SharedConstantReflectionProvider) constantReflection).canRepresentAsImageHeapOffset(constant);
     }
 
     @Override
@@ -149,7 +135,7 @@ class AMD64ImageHeapAddressOptimizationPhase extends BasePhase<CoreProviders> {
                             baseNode.asJavaConstant() instanceof CompressibleConstant baseConstant &&
                             baseConstant.isNonNull()) {
 
-                if (AMD64ImageHeapAddressOptimizationPhase.canOptimize(baseConstant, constantReflection)) {
+                if (canOptimize(baseConstant, constantReflection)) {
                     AMD64ImageHeapAddressNode replacement = new AMD64ImageHeapAddressNode(baseConstant, address.getIndex(), address.getScale(), address.getDisplacement());
                     address.replaceAndDelete(graph.unique(replacement));
                     if (baseNode.hasNoUsages()) {
