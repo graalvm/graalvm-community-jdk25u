@@ -61,7 +61,6 @@ import jdk.vm.ci.meta.ResolvedJavaMethod;
  * weighted more heavily.</li>
  * <li>T1 and T2 constant factors in the threshold function were chosen to be different.</li>
  * <li>Method call frequency cannot be used.</li>
- * <li>Callsite count is used in each callee's benefit calculation.</li>
  * <li>Each callee is evaluated independently instead of sharing a budget with other callees
  * belonging to the same root method. This is achieved by excluding the root size term from the
  * threshold function. The reason for this is to avoid needing to use prioritization to order the
@@ -69,16 +68,6 @@ import jdk.vm.ci.meta.ResolvedJavaMethod;
  * </ol>
  */
 class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
-    class NonTrivialInliningMethodScope extends PEMethodScope {
-        Map<ResolvedJavaMethod, Integer> newCallees;
-
-        NonTrivialInliningMethodScope(StructuredGraph targetGraph, PEMethodScope caller, LoopScope callerLoopScope, EncodedGraph encodedGraph, ResolvedJavaMethod method,
-                        InvokeData invokeData, int inliningDepth, ValueNode[] arguments) {
-            super(targetGraph, caller, callerLoopScope, encodedGraph, method, invokeData, inliningDepth, arguments);
-            newCallees = new HashMap<>(4);
-        }
-
-    }
 
     /*
      * These threshold function constants are different from those chosen in
@@ -112,11 +101,6 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
         return ((HostedMethod) method).compilationInfo.getCompilationGraph().getEncodedGraph();
     }
 
-    @Override
-    protected PEMethodScope createMethodScope(StructuredGraph targetGraph, PEMethodScope caller, LoopScope callerLoopScope, EncodedGraph encodedGraph, ResolvedJavaMethod method, InvokeData invokeData,
-                    int inliningDepth, ValueNode[] arguments) {
-        return new NonTrivialInliningMethodScope(targetGraph, caller, callerLoopScope, encodedGraph, method, invokeData, inliningDepth, arguments);
-    }
 
     /**
      * Calculate the size before inlining. It will be used later to calculate the callee cost when
@@ -159,7 +143,7 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
         double calleeCost = (currentSize - calleeInfo.sizeBeforeInlining);
 
         double offset = 1.0;
-        double bc = (offset + inlineScope.benefit) * Math.pow(root.compilationInfo.callsites.get(), 2) / calleeCost;
+        double bc = (offset + inlineScope.benefit) / calleeCost;
 
         double threshold = T1 * Math.pow(2, (calleeCost / (16 * T2)));
         if (bc >= threshold) {
@@ -174,7 +158,7 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
 
     @Override
     protected void finishInlining(MethodScope is) {
-        NonTrivialInliningMethodScope inlineScope = (NonTrivialInliningMethodScope) is;
+        PEMethodScope inlineScope = (PEMethodScope) is;
         PEMethodScope callerScope = inlineScope.caller;
         HostedMethod callee = (HostedMethod) inlineScope.method;
         LoopScope callerLoopScope = inlineScope.callerLoopScope;
@@ -186,15 +170,6 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
             return;
         }
 
-        /*
-         * Commit the callsite count updates for 2nd level callees being copied into the root scope.
-         */
-        for (var entry : inlineScope.newCallees.entrySet()) {
-            HostedMethod hMethod = (HostedMethod) entry.getKey();
-            hMethod.compilationInfo.callsites.addAndGet(entry.getValue());
-        }
-        // Inlining into this callsite removes it.
-        callee.compilationInfo.callsites.decrementAndGet();
         // Remove callee from the "seen" set
         root.compilationInfo.callees.remove(callee);
 

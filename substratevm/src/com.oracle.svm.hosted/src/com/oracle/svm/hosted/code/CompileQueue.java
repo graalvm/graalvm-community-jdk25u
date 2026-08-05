@@ -490,11 +490,11 @@ public class CompileQueue {
             try (ProgressReporter.ReporterClosable ac = reporter.printInlining()) {
                 // The trivial stage must be run to handle any forced inlining due to annotations
                 inlineTrivialMethods(debug);
-                if (SubstrateOptions.AOTNonTrivialInline.getValue()) {
-                    inlineNonTrivialMethods(debug);
-                }
                 if (SubstrateOptions.AOTSingleCallsiteInline.getValue()) {
                     inlineSingleCallsiteMethods(debug);
+                }
+                if (SubstrateOptions.AOTNonTrivialInline.getValue()) {
+                    inlineNonTrivialMethods(debug);
                 }
             }
             if (ImageSingletons.contains(HostedHeapDumpFeature.class)) {
@@ -863,21 +863,19 @@ public class CompileQueue {
     @SuppressWarnings("try")
     protected void inlineSingleCallsiteMethods(DebugContext debug) throws InterruptedException {
         inliningRound = 0;
-        if (!SubstrateOptions.AOTNonTrivialInline.getValue()) {
-            // First count callsites
-            try (Indent ignored = debug.logAndIndent("==== Single Callsite Inlining: counting callsites")) {
-                runOnExecutor(() -> {
-                    universe.getMethods().forEach(method -> {
-                        assert method.isOriginalMethod();
-                        for (MultiMethod multiMethod : method.getAllMultiMethods()) {
-                            HostedMethod hMethod = (HostedMethod) multiMethod;
-                            if (hMethod.compilationInfo.getCompilationGraph() != null) {
-                                executor.execute(new SingleCallsiteInlineTask(hMethod));
-                            }
+        // First count callsites
+        try (Indent ignored = debug.logAndIndent("==== Single Callsite Inlining: counting callsites")) {
+            runOnExecutor(() -> {
+                universe.getMethods().forEach(method -> {
+                    assert method.isOriginalMethod();
+                    for (MultiMethod multiMethod : method.getAllMultiMethods()) {
+                        HostedMethod hMethod = (HostedMethod) multiMethod;
+                        if (hMethod.compilationInfo.getCompilationGraph() != null) {
+                            executor.execute(new SingleCallsiteInlineTask(hMethod));
                         }
-                    });
+                    }
                 });
-            }
+            });
         }
 
         // Inline single callsite methods
@@ -1165,11 +1163,6 @@ public class CompileQueue {
                 callee.compilationInfo.callsites.incrementAndGet();
             }
         } else {
-            /*
-             * If the root level callee is inlined, this 2nd level callee will be moved up to the
-             * root level and gain a callsite. Record that possibility.
-             */
-            updateCallsiteCountRecords((NonTrivialInliningGraphDecoder.NonTrivialInliningMethodScope) callerScope, callee);
             // This is needed to stop ourselves from diving beyond 1 level of inlining
             return false;
         }
@@ -1253,14 +1246,6 @@ public class CompileQueue {
         return true;
     }
 
-    private static void updateCallsiteCountRecords(NonTrivialInliningGraphDecoder.NonTrivialInliningMethodScope s, HostedMethod callee) {
-        Integer count = s.newCallees.get(callee);
-        if (count == null) {
-            s.newCallees.put(callee, 1);
-        } else {
-            s.newCallees.put(callee, count + 1);
-        }
-    }
 
     private static boolean mustNotAllocateCallee(HostedMethod method) {
         return ImageSingletons.lookup(RestrictHeapAccessCallees.class).mustNotAllocate(method);
