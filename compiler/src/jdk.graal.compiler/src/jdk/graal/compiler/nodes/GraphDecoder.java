@@ -140,6 +140,7 @@ public class GraphDecoder {
          * inlining log. {@code null} if the inlining log is not being decoded.
          */
         public InliningLogCodec.InliningLogDecoder inliningLogDecoder;
+        public int benefit = 0;
 
         @SuppressWarnings("unchecked")
         protected MethodScope(LoopScope callerLoopScope, StructuredGraph graph, EncodedGraph encodedGraph, LoopExplosionPlugin.LoopExplosionKind loopExplosion) {

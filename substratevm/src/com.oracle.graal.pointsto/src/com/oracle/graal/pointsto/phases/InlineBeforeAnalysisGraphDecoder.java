@@ -26,8 +26,6 @@ package com.oracle.graal.pointsto.phases;
 
 import static com.oracle.graal.pointsto.phases.InlineBeforeAnalysisGraphDecoder.InlineBeforeAnalysisMethodScope.recordInlined;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.graalvm.collections.EconomicSet;
@@ -39,16 +37,10 @@ import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.graal.pointsto.phases.InlineBeforeAnalysisPolicy.AbstractPolicyScope;
 
 import jdk.graal.compiler.bytecode.BytecodeProvider;
-import jdk.graal.compiler.debug.GraalError;
 import jdk.graal.compiler.graph.Node;
 import jdk.graal.compiler.graph.NodeSourcePosition;
-import jdk.graal.compiler.nodes.AbstractEndNode;
-import jdk.graal.compiler.nodes.AbstractMergeNode;
 import jdk.graal.compiler.nodes.CallTargetNode;
-import jdk.graal.compiler.nodes.ControlSinkNode;
-import jdk.graal.compiler.nodes.ControlSplitNode;
 import jdk.graal.compiler.nodes.EncodedGraph;
-import jdk.graal.compiler.nodes.FixedNode;
 import jdk.graal.compiler.nodes.FixedWithNextNode;
 import jdk.graal.compiler.nodes.InvokeWithExceptionNode;
 import jdk.graal.compiler.nodes.StructuredGraph;
@@ -58,7 +50,6 @@ import jdk.graal.compiler.nodes.graphbuilderconf.InlineInvokePlugin;
 import jdk.graal.compiler.nodes.graphbuilderconf.InvocationPlugin;
 import jdk.graal.compiler.nodes.graphbuilderconf.LoopExplosionPlugin;
 import jdk.graal.compiler.nodes.java.MethodCallTargetNode;
-import jdk.graal.compiler.nodes.util.GraphUtil;
 import jdk.graal.compiler.replacements.PEGraphDecoder;
 import jdk.graal.compiler.replacements.nodes.MethodHandleWithExceptionNode;
 import jdk.graal.compiler.replacements.nodes.ResolvedMethodHandleCallTargetNode;
@@ -324,21 +315,7 @@ public class InlineBeforeAnalysisGraphDecoder extends PEGraphDecoder {
             if (callerScope.policyScope != null) {
                 callerScope.policyScope.abortCalleeScope(inlineScope.policyScope);
             }
-            if (invokeData.invokePredecessor.next() != null) {
-                killControlFlowNodes(inlineScope, invokeData.invokePredecessor.next());
-                assert invokeData.invokePredecessor.next() == null : "Successor must have been a fixed node created in the aborted scope, which is deleted now";
-            }
-            invokeData.invokePredecessor.setNext(invokeData.invoke.asFixedNode());
-
-            if (inlineScope.exceptionPlaceholderNode != null) {
-                assert invokeData.invoke instanceof InvokeWithExceptionNode : invokeData.invoke;
-                assert lookupNode(callerLoopScope, invokeData.exceptionOrderId) == inlineScope.exceptionPlaceholderNode : inlineScope;
-                registerNode(callerLoopScope, invokeData.exceptionOrderId, null, true, true);
-                ValueNode exceptionReplacement = makeStubNode(callerScope, callerLoopScope, invokeData.exceptionOrderId);
-                inlineScope.exceptionPlaceholderNode.replaceAtUsagesAndDelete(exceptionReplacement);
-            }
-
-            handleNonInlinedInvoke(callerScope, callerLoopScope, invokeData);
+            undoInlining(inlineScope, callerScope, callerLoopScope, invokeData);
             return;
         }
 
@@ -357,65 +334,6 @@ public class InlineBeforeAnalysisGraphDecoder extends PEGraphDecoder {
         ((AnalysisMethod) invokeData.callTarget.targetMethod()).registerAsInlined(reason);
 
         super.finishInlining(inlineScope);
-    }
-
-    /**
-     * Kill fixed nodes of structured control flow. Not as generic, but faster, than
-     * {@link GraphUtil#killCFG}.
-     *
-     * We cannot kill unused floating nodes at this point, because we are still in the middle of
-     * decoding caller graphs, so floating nodes of the caller that have no usage yet can get used
-     * when decoding of the caller continues. Unused floating nodes are cleaned up by the next run
-     * of the CanonicalizerPhase.
-     */
-    private void killControlFlowNodes(PEMethodScope inlineScope, FixedNode start) {
-        Deque<Node> workList = null;
-        Node cur = start;
-        while (true) {
-            assert !cur.isDeleted() : cur;
-            assert graph.isNew(inlineScope.methodStartMark, cur) : cur;
-
-            Node next = null;
-            if (cur instanceof FixedWithNextNode) {
-                next = ((FixedWithNextNode) cur).next();
-            } else if (cur instanceof ControlSplitNode) {
-                for (Node successor : cur.successors()) {
-                    if (next == null) {
-                        next = successor;
-                    } else {
-                        if (workList == null) {
-                            workList = new ArrayDeque<>();
-                        }
-                        workList.push(successor);
-                    }
-                }
-            } else if (cur instanceof AbstractEndNode) {
-                next = ((AbstractEndNode) cur).merge();
-            } else if (cur instanceof ControlSinkNode) {
-                /* End of this control flow path. */
-            } else {
-                throw GraalError.shouldNotReachHereUnexpectedValue(cur); // ExcludeFromJacocoGeneratedReport
-            }
-
-            if (cur instanceof AbstractMergeNode) {
-                for (ValueNode phi : ((AbstractMergeNode) cur).phis().snapshot()) {
-                    phi.replaceAtUsages(null);
-                    phi.safeDelete();
-                }
-            }
-
-            cur.replaceAtPredecessor(null);
-            cur.replaceAtUsages(null);
-            cur.safeDelete();
-
-            if (next != null) {
-                cur = next;
-            } else if (workList != null && !workList.isEmpty()) {
-                cur = workList.pop();
-            } else {
-                return;
-            }
-        }
     }
 
     /**

@@ -34,8 +34,10 @@ import static jdk.graal.compiler.nodeinfo.NodeSize.SIZE_0;
 import static jdk.graal.compiler.nodeinfo.NodeSize.SIZE_IGNORED;
 
 import java.net.URI;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Formatter;
 import java.util.HashMap;
 import java.util.List;
@@ -183,7 +185,7 @@ public abstract class PEGraphDecoder extends SimplifyingGraphDecoder {
         public static final OptionKey<Boolean> FailedLoopExplosionIsFatal = new OptionKey<>(false);
     }
 
-    protected class PEMethodScope extends MethodScope {
+    public class PEMethodScope extends MethodScope {
         /** The state of the caller method. Only non-null during method inlining. */
         public final PEMethodScope caller;
         public final ResolvedJavaMethod method;
@@ -343,7 +345,7 @@ public abstract class PEGraphDecoder extends SimplifyingGraphDecoder {
         }
     }
 
-    protected class PENonAppendGraphBuilderContext extends CoreProvidersDelegate implements GraphBuilderContext {
+    public class PENonAppendGraphBuilderContext extends CoreProvidersDelegate implements GraphBuilderContext {
         public final PEMethodScope methodScope;
         protected final Invoke invoke;
 
@@ -1442,6 +1444,81 @@ public abstract class PEGraphDecoder extends SimplifyingGraphDecoder {
         if (methodScope.optimizationLog != null) {
             assert inlineScope.optimizationLog != null : "all inlinees should have an optimization log if the root requires it";
             methodScope.optimizationLog.inline(inlineScope.optimizationLog, false, null);
+        }
+    }
+
+    protected void undoInlining(PEMethodScope inlineScope, PEMethodScope callerScope, LoopScope callerLoopScope, InvokeData invokeData) {
+        if (invokeData.invokePredecessor.next() != null) {
+            killControlFlowNodes(inlineScope, invokeData.invokePredecessor.next());
+            assert invokeData.invokePredecessor.next() == null : "Successor must have been a fixed node created in the aborted scope, which is deleted now";
+        }
+        invokeData.invokePredecessor.setNext(invokeData.invoke.asFixedNode());
+        if (inlineScope.exceptionPlaceholderNode != null) {
+            assert invokeData.invoke instanceof jdk.graal.compiler.nodes.InvokeWithExceptionNode : invokeData.invoke;
+            assert lookupNode(callerLoopScope, invokeData.exceptionOrderId) == inlineScope.exceptionPlaceholderNode : inlineScope;
+            registerNode(callerLoopScope, invokeData.exceptionOrderId, null, true, true);
+            ValueNode exceptionReplacement = makeStubNode(callerScope, callerLoopScope, invokeData.exceptionOrderId);
+            inlineScope.exceptionPlaceholderNode.replaceAtUsagesAndDelete(exceptionReplacement);
+        }
+        handleNonInlinedInvoke(callerScope, callerLoopScope, invokeData);
+    }
+
+    /**
+     * Kill fixed nodes of structured control flow. Not as generic, but faster, than
+     * {@link GraphUtil#killCFG}.
+     *
+     * We cannot kill unused floating nodes at this point, because we are still in the middle of
+     * decoding caller graphs, so floating nodes of the caller that have no usage yet can get used
+     * when decoding of the caller continues. Unused floating nodes are cleaned up by the next run
+     * of the CanonicalizerPhase.
+     */
+    private void killControlFlowNodes(PEMethodScope inlineScope, FixedNode start) {
+        Deque<Node> workList = null;
+        Node cur = start;
+        for (int i = 0; i < 1000000; i++) {
+            assert !cur.isDeleted() : cur;
+            assert graph.isNew(inlineScope.methodStartMark, cur) : cur;
+
+            Node next = null;
+            if (cur instanceof FixedWithNextNode) {
+                next = ((FixedWithNextNode) cur).next();
+            } else if (cur instanceof ControlSplitNode) {
+                for (Node successor : cur.successors()) {
+                    if (next == null) {
+                        next = successor;
+                    } else {
+                        if (workList == null) {
+                            workList = new ArrayDeque<>();
+                        }
+                        workList.push(successor);
+                    }
+                }
+            } else if (cur instanceof AbstractEndNode) {
+                next = ((AbstractEndNode) cur).merge();
+            } else if (cur instanceof ControlSinkNode) {
+                /* End of this control flow path. */
+            } else {
+                throw GraalError.shouldNotReachHereUnexpectedValue(cur); // ExcludeFromJacocoGeneratedReport
+            }
+
+            if (cur instanceof AbstractMergeNode) {
+                for (ValueNode phi : ((AbstractMergeNode) cur).phis().snapshot()) {
+                    phi.replaceAtUsages(null);
+                    phi.safeDelete();
+                }
+            }
+
+            cur.replaceAtPredecessor(null);
+            cur.replaceAtUsages(null);
+            cur.safeDelete();
+
+            if (next != null) {
+                cur = next;
+            } else if (workList != null && !workList.isEmpty()) {
+                cur = workList.pop();
+            } else {
+                return;
+            }
         }
     }
 

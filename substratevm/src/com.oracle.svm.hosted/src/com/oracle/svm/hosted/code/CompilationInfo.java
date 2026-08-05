@@ -25,6 +25,8 @@
  */
 package com.oracle.svm.hosted.code;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,6 +52,12 @@ public class CompilationInfo {
     int sizeLastRound;
 
     AtomicInteger callsites = new AtomicInteger();
+
+    // Flag to indicate that one of this method's callees has been inlined into it.
+    public volatile boolean hasChanged;
+
+    // Callees that have been evaluated but did not meet the inlining threshold.
+    public Map<HostedMethod, CalleeInfo> callees = new HashMap<>(8);
 
     protected final HostedMethod method;
 

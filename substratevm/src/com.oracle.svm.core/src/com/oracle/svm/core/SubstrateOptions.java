@@ -931,6 +931,10 @@ public class SubstrateOptions {
     @Option(help = "Perform single callsite method inlining in the AOT compiled native image", stability = OptionStability.EXPERIMENTAL)//
     public static final HostedOptionKey<Boolean> AOTSingleCallsiteInline = new HostedOptionKey<>(false);
 
+    @LayerVerifiedOption(kind = Kind.Changed, severity = Severity.Error)//
+    @Option(help = "Perform non-trivial method inlining in the AOT compiled native image", stability = OptionStability.EXPERIMENTAL)//
+    public static final HostedOptionKey<Boolean> AOTNonTrivialInline = new HostedOptionKey<>(false);
+
     @LayerVerifiedOption(kind = Kind.Removed, severity = Severity.Error, positional = false)//
     @Option(help = "file:doc-files/NeverInlineHelp.txt", type = OptionType.Debug)//
     public static final HostedOptionKey<AccumulatingLocatableMultiOptionValue.Strings> NeverInline = new HostedOptionKey<>(AccumulatingLocatableMultiOptionValue.Strings.build());

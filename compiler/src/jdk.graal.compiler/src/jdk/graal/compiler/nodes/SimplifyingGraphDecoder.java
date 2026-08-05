@@ -66,6 +66,18 @@ import jdk.vm.ci.meta.Assumptions;
  * with constant conditions are simplified.
  */
 public class SimplifyingGraphDecoder extends GraphDecoder {
+    /*
+     * Emphasize reducing graph size by weighting certain simplifications more. The benefit weights
+     * below were determined empirically. Floating node removal is weighted the smallest because it
+     * doesn't change the overall structure of the graph. These nodes may not even get removed
+     * during the canonicalizer phase if they are used again elsewhere. Fixed node removal is
+     * weighted more because it changes graph structure. Removal of conditional blocks is weighted
+     * the most because it reduces branching.
+     */
+    private static final int FLOATING_REMOVAL_WEIGHT = 20;
+    private static final int FIXED_SUCCESSOR_REMOVAL_WEIGHT = 30;
+    private static final int FIXED_REMOVAL_WEIGHT = 35;
+    private static final int CONDITIONAL_REMOVAL_WEIGHT = 55;
 
     private static final TimerKey CanonicalizeFixedNode = DebugContext.timer("PartialEvaluation-CanonicalizeFixedNode").doc("Time spent in simplifying fixed nodes.");
 
@@ -189,7 +201,8 @@ public class SimplifyingGraphDecoder extends GraphDecoder {
         try (DebugCloseable a = CanonicalizeFixedNode.start(debug)) {
             Node canonical = canonicalizeFixedNode(methodScope, loopScope, node);
             if (canonical != node) {
-                handleCanonicalization(loopScope, nodeOrderId, node, canonical);
+                methodScope.benefit++;
+                handleCanonicalization(loopScope, nodeOrderId, node, canonical, methodScope);
             }
         }
     }
@@ -278,6 +291,7 @@ public class SimplifyingGraphDecoder extends GraphDecoder {
             methodScope.reader.setByteIndex(successorsByteIndex + (IfNode.SUCCESSOR_EDGES_COUNT * methodScope.orderIdWidth));
 
             removeSplit(methodScope, loopScope, ifNode, survivingOrderId);
+            methodScope.benefit += CONDITIONAL_REMOVAL_WEIGHT;
             return true;
         } else if (node instanceof IntegerSwitchNode switchNode && switchNode.value().isConstant()) {
             /*
@@ -297,6 +311,7 @@ public class SimplifyingGraphDecoder extends GraphDecoder {
             methodScope.reader.setByteIndex(successorsByteIndex + size * methodScope.orderIdWidth);
 
             removeSplit(methodScope, loopScope, switchNode, survivingOrderId);
+            methodScope.benefit += CONDITIONAL_REMOVAL_WEIGHT;
             return true;
         } else {
             return false;
@@ -319,20 +334,21 @@ public class SimplifyingGraphDecoder extends GraphDecoder {
         }
     }
 
-    private static Node canonicalizeFixedNodeToNull(FixedNode node) {
+    private static Node canonicalizeFixedNodeToNull(FixedNode node, MethodScope methodScope) {
         /*
          * When a node is unnecessary, we must not remove it right away because there might be nodes
          * that use it as a guard input. Therefore, we replace it with a more lightweight node
          * (which is floating and has no inputs).
          */
+        methodScope.benefit += FIXED_REMOVAL_WEIGHT;
         return new CanonicalizeToNullNode(node.stamp);
     }
 
     @SuppressWarnings("try")
-    private void handleCanonicalization(LoopScope loopScope, int nodeOrderId, FixedNode node, Node c) {
+    private void handleCanonicalization(LoopScope loopScope, int nodeOrderId, FixedNode node, Node c, MethodScope methodScope) {
         assert c != node : "unnecessary call";
         try (DebugCloseable position = graph.withNodeSourcePosition(node)) {
-            Node canonical = c == null ? canonicalizeFixedNodeToNull(node) : c;
+            Node canonical = c == null ? canonicalizeFixedNodeToNull(node, methodScope) : c;
             if (!canonical.isAlive()) {
                 assert !canonical.isDeleted();
                 canonical = graph.addOrUniqueWithInputs(canonical);
@@ -342,9 +358,10 @@ public class SimplifyingGraphDecoder extends GraphDecoder {
                     FixedWithNextNode predecessor = (FixedWithNextNode) node.predecessor();
                     predecessor.setNext((ControlSinkNode) canonical);
                     List<Node> successorSnapshot = node.successors().snapshot();
-                    node.safeDelete();
+                    node.safeDelete();// TODO should we add benefit here
                     for (Node successor : successorSnapshot) {
                         successor.safeDelete();
+                        methodScope.benefit += FIXED_SUCCESSOR_REMOVAL_WEIGHT;
                     }
                 } else if (canonical instanceof WithExceptionNode) {
                     // will be handled below
@@ -385,7 +402,9 @@ public class SimplifyingGraphDecoder extends GraphDecoder {
                      * to add additional usages later on for which we need a node. Therefore, we
                      * just do nothing and leave the node in place.
                      */
+                    methodScope.benefit += FLOATING_REMOVAL_WEIGHT;
                 } else if (canonical != node) {
+                    methodScope.benefit++;
                     if (!canonical.isAlive()) {
                         assert !canonical.isDeleted();
                         canonical = graph.addOrUniqueWithInputs(canonical);
