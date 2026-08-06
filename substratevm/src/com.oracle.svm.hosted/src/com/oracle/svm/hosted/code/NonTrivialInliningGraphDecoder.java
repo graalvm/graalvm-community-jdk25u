@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.oracle.graal.pointsto.flow.AnalysisParsedGraph;
+import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.meta.HostedMethod;
 import jdk.graal.compiler.bytecode.BytecodeProvider;
@@ -81,8 +82,10 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
      * evaluated independently. There is a per-callee budget, not a shared budget. All of these
      * reasons result in needing a threshold that is harder to overcome.
      */
-    private static final double T1 = 5;
-    private static final double T2 = 1;
+    private final double t1;
+    private final double t2;
+    private final double loopDepthBoostFactor;
+    private final double constantArgBoostFactor;
 
     boolean inlinedDuringDecoding;
     int round;
@@ -94,6 +97,16 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
                         null, null, null, null,
                         new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), true, false);
         this.round = round;
+        this.t1 = SubstrateOptions.NonTrivialInlineT1.getValue();
+        this.t2 = SubstrateOptions.NonTrivialInlineT2.getValue();
+        this.loopDepthBoostFactor = SubstrateOptions.InlineLoopDepthBoostFactor.getValue();
+        this.constantArgBoostFactor = SubstrateOptions.InlineConstantArgBoostFactor.getValue();
+        this.floatingRemovalWeight = SubstrateOptions.InlineBenefitFloatingRemoval.getValue();
+        this.floatingSimplifiedWeight = SubstrateOptions.InlineBenefitFloatingSimplified.getValue();
+        this.fixedSuccessorRemovalWeight = SubstrateOptions.InlineBenefitFixedSuccessorRemoval.getValue();
+        this.fixedRemovalWeight = SubstrateOptions.InlineBenefitFixedRemoval.getValue();
+        this.fixedSimplifiedWeight = SubstrateOptions.InlineBenefitFixedSimplified.getValue();
+        this.conditionalRemovalWeight = SubstrateOptions.InlineBenefitConditionalRemoval.getValue();
     }
 
     @Override
@@ -127,6 +140,7 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
          * depths) should not be a problem since we only go one level deep per round.
          */
         calleeInfo.sizeBeforeInlining = NodeCostUtil.computeGraphSize(graph);
+        calleeInfo.callSiteLoopDepth = loopScope.loopDepth;
         return super.doInline(methodScope, loopScope, invokeData, inlineInfo, arguments);
     }
 
@@ -142,10 +156,16 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
         double currentSize = NodeCostUtil.computeGraphSize(graph);
         double calleeCost = (currentSize - calleeInfo.sizeBeforeInlining);
 
-        double offset = 1.0;
-        double bc = (offset + inlineScope.benefit) / calleeCost;
+        double effectiveBenefit = inlineScope.benefit;
 
-        double threshold = T1 * Math.pow(2, (calleeCost / (16 * T2)));
+        if (calleeInfo.callSiteLoopDepth > 0 && loopDepthBoostFactor > 1.0) {
+            effectiveBenefit *= Math.pow(loopDepthBoostFactor, calleeInfo.callSiteLoopDepth);
+        }
+
+        double offset = 1.0;
+        double bc = (offset + effectiveBenefit) / calleeCost;
+
+        double threshold = t1 * Math.pow(2, (calleeCost / (16 * t2)));
         if (bc >= threshold) {
             return true;
         }

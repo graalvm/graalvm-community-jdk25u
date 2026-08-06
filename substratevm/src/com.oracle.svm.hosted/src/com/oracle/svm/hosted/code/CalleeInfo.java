@@ -45,6 +45,8 @@ class CalleeInfo {
      */
     public int lastRoundUpdated;
     public HostedMethod method;
+    /** Loop nesting depth of the call site in the caller. */
+    public int callSiteLoopDepth;
 
     CalleeInfo(HostedMethod method, int lastRoundUpdated) {
         this.method = method;
