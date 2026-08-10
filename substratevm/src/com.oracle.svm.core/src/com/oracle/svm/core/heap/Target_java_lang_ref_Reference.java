@@ -91,7 +91,8 @@ public final class Target_java_lang_ref_Reference<T> {
      * to the field. This is fine from the point of view of the static analysis, because the field
      * stores by the garbage collector do not change the type of the referent.
      *
-     * {@link Target_java_lang_ref_Reference#clear0()} may set this field to null.
+     * {@link Target_java_lang_ref_Reference#clear0()} may set this field to null, and
+     * {@link Target_java_lang_ref_Reference#get()} reads this field.
      */
     @Alias @RecomputeFieldValue(kind = RecomputeFieldValue.Kind.Custom, declClass = ComputeReferenceValue.class) //
     @ExcludeFromReferenceMap(reason = "The GC processes this field manually.") //
@@ -120,8 +121,11 @@ public final class Target_java_lang_ref_Reference<T> {
         this.queue = (queue == null) ? Target_java_lang_ref_ReferenceQueue.NULL_QUEUE : queue;
     }
 
-    @KeepOriginal
-    native T get();
+    @Substitute
+    @SuppressWarnings("unchecked")
+    T get() {
+        return (T) ReferenceInternals.getReferent(SubstrateUtil.cast(this, Reference.class));
+    }
 
     @KeepOriginal
     native void clear();

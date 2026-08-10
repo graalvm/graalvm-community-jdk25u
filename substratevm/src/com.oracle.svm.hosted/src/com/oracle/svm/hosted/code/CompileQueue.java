@@ -959,9 +959,7 @@ public class CompileQueue {
     /**
      * This plugin will allow inline trialing of methods which have never been visited before, or
      * methods that have changed since last visited. It will prevent inlining past one level deep
-     * (root's direct callees). When a 2nd level callee is encountered, inlining will be blocked,
-     * but the method's callsite will be recorded in case the 1st level callee inlining is committed
-     * (at which point the method's total callsites increases).
+     * (root's direct callees).
      */
     class NonTrivialInliningPlugin implements InlineInvokePlugin {
         @Override
@@ -1183,7 +1181,7 @@ public class CompileQueue {
         return isSizeWithinLimit(caller, callee);
     }
 
-    private boolean makeNonTrivialInliningPotentialDecision(HostedMethod root, HostedMethod callee) {
+    private static boolean makeNonTrivialInliningPotentialDecision(HostedMethod root, HostedMethod callee) {
         if (!isCalleeGraphAvailable(root, callee)) {
             return false;
         }
@@ -1245,7 +1243,6 @@ public class CompileQueue {
         }
         return true;
     }
-
 
     private static boolean mustNotAllocateCallee(HostedMethod method) {
         return ImageSingletons.lookup(RestrictHeapAccessCallees.class).mustNotAllocate(method);

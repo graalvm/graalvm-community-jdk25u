@@ -25,8 +25,6 @@
  */
 package com.oracle.svm.hosted.code;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.oracle.graal.pointsto.flow.AnalysisParsedGraph;
@@ -40,7 +38,6 @@ import jdk.graal.compiler.nodes.StructuredGraph;
 import jdk.graal.compiler.nodes.ValueNode;
 import jdk.graal.compiler.nodes.graphbuilderconf.InlineInvokePlugin;
 import jdk.graal.compiler.nodes.util.GraphUtil;
-import jdk.graal.compiler.phases.contract.NodeCostUtil;
 import jdk.graal.compiler.phases.util.Providers;
 import jdk.graal.compiler.replacements.PEGraphDecoder;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
