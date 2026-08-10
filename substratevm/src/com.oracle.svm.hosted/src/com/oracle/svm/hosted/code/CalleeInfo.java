@@ -35,11 +35,6 @@ import com.oracle.svm.hosted.meta.HostedMethod;
  */
 class CalleeInfo {
     /*
-     * This is the size of the graph starting at the root method before inlining this callee. Needed
-     * to calculate the callee's cost. It depends on the root graph, not the callee at all.
-     */
-    public int sizeBeforeInlining;
-    /*
      * The last round that this Callee info was updated (callee was trialed). This is needed for
      * handling multiple callsites within the same root scope.
      */

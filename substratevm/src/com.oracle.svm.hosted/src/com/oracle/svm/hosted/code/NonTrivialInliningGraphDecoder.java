@@ -34,10 +34,12 @@ import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.meta.HostedMethod;
 import jdk.graal.compiler.bytecode.BytecodeProvider;
+import jdk.graal.compiler.graph.Node;
 import jdk.graal.compiler.nodes.EncodedGraph;
 import jdk.graal.compiler.nodes.StructuredGraph;
 import jdk.graal.compiler.nodes.ValueNode;
 import jdk.graal.compiler.nodes.graphbuilderconf.InlineInvokePlugin;
+import jdk.graal.compiler.nodes.util.GraphUtil;
 import jdk.graal.compiler.phases.contract.NodeCostUtil;
 import jdk.graal.compiler.phases.util.Providers;
 import jdk.graal.compiler.replacements.PEGraphDecoder;
@@ -85,7 +87,6 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
     private final double t1;
     private final double t2;
     private final double loopDepthBoostFactor;
-    private final double constantArgBoostFactor;
 
     boolean inlinedDuringDecoding;
     int round;
@@ -100,7 +101,6 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
         this.t1 = SubstrateOptions.NonTrivialInlineT1.getValue();
         this.t2 = SubstrateOptions.NonTrivialInlineT2.getValue();
         this.loopDepthBoostFactor = SubstrateOptions.InlineLoopDepthBoostFactor.getValue();
-        this.constantArgBoostFactor = SubstrateOptions.InlineConstantArgBoostFactor.getValue();
         this.floatingRemovalWeight = SubstrateOptions.InlineBenefitFloatingRemoval.getValue();
         this.floatingSimplifiedWeight = SubstrateOptions.InlineBenefitFloatingSimplified.getValue();
         this.fixedSuccessorRemovalWeight = SubstrateOptions.InlineBenefitFixedSuccessorRemoval.getValue();
@@ -114,11 +114,6 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
         return ((HostedMethod) method).compilationInfo.getCompilationGraph().getEncodedGraph();
     }
 
-
-    /**
-     * Calculate the size before inlining. It will be used later to calculate the callee cost when
-     * making inlining decisions.
-     */
     @Override
     protected LoopScope doInline(PEMethodScope methodScope, LoopScope loopScope, InvokeData invokeData, InlineInvokePlugin.InlineInfo inlineInfo, ValueNode[] arguments) {
         // First, get the root method
@@ -135,11 +130,6 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
             calleeInfo = new CalleeInfo(callee, round);
             root.compilationInfo.callees.put(callee, calleeInfo);
         }
-        /*
-         * Stash the graph size in the CalleeInfo. Recursion (due to multiple callsites at different
-         * depths) should not be a problem since we only go one level deep per round.
-         */
-        calleeInfo.sizeBeforeInlining = NodeCostUtil.computeGraphSize(graph);
         calleeInfo.callSiteLoopDepth = loopScope.loopDepth;
         return super.doInline(methodScope, loopScope, invokeData, inlineInfo, arguments);
     }
@@ -153,8 +143,12 @@ class NonTrivialInliningGraphDecoder extends PEGraphDecoder {
         CalleeInfo calleeInfo = root.compilationInfo.callees.get(callee);
         VMError.guarantee(calleeInfo != null, "CalleeInfo should have been created in doInline");
 
-        double currentSize = NodeCostUtil.computeGraphSize(graph);
-        double calleeCost = (currentSize - calleeInfo.sizeBeforeInlining);
+        double calleeCost = 1;
+        for (Node node : graph.getNewNodes(inlineScope.methodStartMark)) {
+            if (node.isAlive() && !GraphUtil.shouldKillUnused(node) && !(node instanceof ExceptionPlaceholderNode)) {
+                calleeCost += node.estimatedNodeSize().value;
+            }
+        }
 
         double effectiveBenefit = inlineScope.benefit;
 

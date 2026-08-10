@@ -936,9 +936,9 @@ public class SubstrateOptions {
     public static final HostedOptionKey<Boolean> AOTNonTrivialInline = new HostedOptionKey<>(false);
 
     @Option(help = "Non-trivial inlining threshold constant T1. Higher values make inlining harder.", stability = OptionStability.EXPERIMENTAL)//
-    public static final HostedOptionKey<Double> NonTrivialInlineT1 = new HostedOptionKey<>(5.0);
+    public static final HostedOptionKey<Double> NonTrivialInlineT1 = new HostedOptionKey<>(3.0);
     @Option(help = "Non-trivial inlining threshold constant T2. Higher values make inlining easier for large callees.", stability = OptionStability.EXPERIMENTAL)//
-    public static final HostedOptionKey<Double> NonTrivialInlineT2 = new HostedOptionKey<>(1.0);
+    public static final HostedOptionKey<Double> NonTrivialInlineT2 = new HostedOptionKey<>(3.0);
     @Option(help = "Benefit weight for removing a floating node.", stability = OptionStability.EXPERIMENTAL)//
     public static final HostedOptionKey<Integer> InlineBenefitFloatingRemoval = new HostedOptionKey<>(20);
     @Option(help = "Benefit weight for simplifying a floating node.", stability = OptionStability.EXPERIMENTAL)//
@@ -954,8 +954,6 @@ public class SubstrateOptions {
 
     @Option(help = "Multiplier applied to inlining benefit per loop nesting depth of the call site. Higher values favor inlining inside loops.", stability = OptionStability.EXPERIMENTAL)//
     public static final HostedOptionKey<Double> InlineLoopDepthBoostFactor = new HostedOptionKey<>(2.0);
-    @Option(help = "Multiplier applied to inlining benefit per constant argument passed to the callee. Higher values favor inlining when constants enable cascading optimizations.", stability = OptionStability.EXPERIMENTAL)//
-    public static final HostedOptionKey<Double> InlineConstantArgBoostFactor = new HostedOptionKey<>(1.5);
 
     @LayerVerifiedOption(kind = Kind.Removed, severity = Severity.Error, positional = false)//
     @Option(help = "file:doc-files/NeverInlineHelp.txt", type = OptionType.Debug)//
