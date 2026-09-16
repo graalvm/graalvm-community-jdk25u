@@ -2,8 +2,8 @@
 suite = {
     "mxversion": "7.38.0",
     "name": "substratevm",
-    "version" : "25.0.4.1",
-    "release" : True,
+    "version" : "25.0.4.1.1",
+    "release" : False,
     "url" : "https://github.com/oracle/graal/tree/master/substratevm",
 
     "groupId" : "org.graalvm.nativeimage",
@@ -1081,6 +1081,25 @@ suite = {
             "jacoco" : "exclude",
         },
 
+        "com.oracle.svm.driver.test": {
+            "subDir": "src",
+            "sourceDirs": ["src"],
+            "dependencies": [
+                "mx:JUNIT_TOOL",
+                "com.oracle.svm.driver",
+            ],
+            "checkstyle": "com.oracle.svm.test",
+            "workingSets": "SVM",
+            "annotationProcessors": [
+                "compiler:GRAAL_PROCESSOR",
+                "SVM_PROCESSOR",
+            ],
+            "javaCompliance": "21+",
+            "spotbugs": "false",
+            "jacoco": "exclude",
+            "testProject": True,
+        },
+
         "com.oracle.svm.junit": {
             "subDir": "src",
             "sourceDirs": [
@@ -1121,7 +1140,10 @@ suite = {
             "requiresConcealed" : {
                 "java.base" : [
                     "jdk.internal.misc",
+<<<<<<< HEAD
                     "jdk.internal.reflect",
+=======
+>>>>>>> vm-25.0.4.1.1
                     "jdk.internal.vm",
                     "sun.security.jca",
                 ],
@@ -2410,6 +2432,21 @@ suite = {
                 "STANDALONE_POINTSTO",
             ],
             "testDistribution" : True,
+        },
+
+        "SVM_DRIVER_TESTS" : {
+          "subDir": "src",
+          "relpath" : True,
+          "dependencies" : [
+            "com.oracle.svm.driver.test",
+          ],
+          "unittestConfig" : "svm-driver-unittest",
+          "distDependencies": [
+            "mx:JUNIT_TOOL",
+            "sdk:NATIVEIMAGE",
+            "SVM_DRIVER",
+          ],
+          "testDistribution" : True,
         },
 
         "SVM_TESTS" : {

@@ -39,11 +39,11 @@ import org.graalvm.word.Pointer;
 import com.oracle.svm.core.UnmanagedMemoryUtil;
 import com.oracle.svm.core.VMInspectionOptions;
 import com.oracle.svm.core.c.struct.PinnedObjectField;
-import com.oracle.svm.core.heap.dump.HeapDumpWriter.HeapDumpError;
 import com.oracle.svm.core.heap.GCCause;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 import com.oracle.svm.core.heap.VMOperationInfos;
+import com.oracle.svm.core.heap.dump.HeapDumpWriter.HeapDumpError;
 import com.oracle.svm.core.locks.VMMutex;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.memory.UntrackedNullableNativeMemory;
@@ -119,7 +119,7 @@ public class HeapDumpSupportImpl extends HeapDumping {
 
         RawFileDescriptor fd = getFileSupport().create(path, FileCreationMode.CREATE_OR_REPLACE, RawFileOperationSupport.FileAccessMode.READ_WRITE);
         if (!getFileSupport().isValid(fd)) {
-            Log.log().string("Out-of-memory heap dumping failed because the heap dump file could not be created: ").string(outOfMemoryHeapDumpPathText).newline();
+            Log.log().string("Out-of-memory heap dumping failed because the heap dump file could not be created: ").string(path).newline();
             return;
         }
 

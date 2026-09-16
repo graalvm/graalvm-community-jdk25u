@@ -125,15 +125,54 @@ public class SpectreFenceTest extends GraalCompilerTest {
     }
 
     private void assertNumberOfFences(String snip, int fences) {
-        int computedFences = 0;
         StructuredGraph g = getFinalGraph(getResolvedJavaMethod(snip), getFenceOptions());
-        for (AbstractBeginNode beginNode : g.getNodes(AbstractBeginNode.TYPE)) {
-            if (beginNode.hasSpeculationFence()) {
+        Assert.assertEquals("Expected fences", fences, g.getNodes().filter(SpeculationFenceNode.class).count());
+    }
+
+    /**
+     * Returns whether {@code beginNode} is the non-deoptimizing branch of a bounds-check guard.
+     */
+    private static boolean isBoundsCheckGuard(AbstractBeginNode beginNode) {
+        if (!(beginNode.predecessor() instanceof IfNode ifNode)) {
+            return false;
+        }
+        AbstractBeginNode otherBegin = ifNode.trueSuccessor() == beginNode ? ifNode.falseSuccessor() : ifNode.trueSuccessor();
+        if (!(otherBegin.next() instanceof DeoptimizeNode deopt)) {
+            return false;
+        }
+        return deopt.getReason() == DeoptimizationReason.BoundsCheckException;
+    }
+
+    private int countBoundsCheckGuards(String snip, OptionValues options) {
+        int computedGuards = 0;
+        StructuredGraph graph = getFinalGraph(getResolvedJavaMethod(snip), options);
+        for (AbstractBeginNode beginNode : graph.getNodes(AbstractBeginNode.TYPE)) {
+            if (isBoundsCheckGuard(beginNode)) {
+                computedGuards++;
+            }
+        }
+        return computedGuards;
+    }
+
+    private int countBoundsCheckGuardFences(String snip, OptionValues options) {
+        int computedFences = 0;
+        StructuredGraph graph = getFinalGraph(getResolvedJavaMethod(snip), options);
+        for (AbstractBeginNode beginNode : graph.getNodes(AbstractBeginNode.TYPE)) {
+            if (beginNode.next() instanceof SpeculationFenceNode && isBoundsCheckGuard(beginNode)) {
                 computedFences++;
             }
-            GraalDirectives.controlFlowAnchor();
         }
-        Assert.assertEquals("Expected fences", fences, computedFences);
+        return computedFences;
+    }
+
+    private int countExplicitSpeculationFences(String snip, OptionValues options) {
+        StructuredGraph graph = getFinalGraph(getResolvedJavaMethod(snip), options);
+        return Math.toIntExact(graph.getNodes().filter(SpeculationFenceNode.class).count());
+    }
+
+    private boolean graphContainsNode(String snip, OptionValues options, Class<? extends Node> nodeType) {
+        StructuredGraph graph = getFinalGraph(getResolvedJavaMethod(snip), options);
+        return graph.getNodes().filter(nodeType).isNotEmpty();
     }
 
     /**

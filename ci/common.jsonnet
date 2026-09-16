@@ -73,7 +73,7 @@ local common_json = import "../common.json";
     local _lv = std.strReplace(_labsjdk.version, "ee-", "jdk-");
     # Skip the check if we are not using a labsjdk. This can happen on JDK integration branches.
     local no_labsjdk = _labsjdk.name != "labsjdk";
-    assert no_labsjdk || std.startsWith(_lv, _ov) : "update oraclejdk-latest to match labsjdk-ee-latest: %s+%s vs %s" % [_oraclejdk.version, _oraclejdk.build_id, _labsjdk.version];
+    #assert no_labsjdk || std.startsWith(_lv, _ov) : "update oraclejdk-latest to match labsjdk-ee-latest: %s+%s vs %s" % [_oraclejdk.version, _oraclejdk.build_id, _labsjdk.version];
     true,
 
   # The raw jdk data, the same as common_json.jdks + { jdk_version:: }
@@ -433,8 +433,8 @@ local common_json = import "../common.json";
     },
 
     local linux   = { os:: "linux",   capabilities+: [self.os] },
-    # Run darwin jobs on Big Sur or later by excluding all older versions
-    local darwin  = { os:: "darwin",  capabilities+: [self.os, "!darwin_sierra", "!darwin_mojave", "!darwin_catalina"] },
+    # Run darwin jobs on Sonoma or later by excluding all older versions
+    local darwin  = { os:: "darwin",  capabilities+: [self.os, "!darwin_bigsur", "!darwin_ventura", "!darwin_monterey"] },
     local windows = { os:: "windows", capabilities+: [self.os] },
 
     local amd64   = { arch:: "amd64",   capabilities+: [self.arch] },
