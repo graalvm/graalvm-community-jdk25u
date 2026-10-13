@@ -44,7 +44,6 @@ import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.hosted.c.CGlobalDataFeature;
 import com.oracle.svm.hosted.c.NativeLibraries;
 import com.oracle.svm.hosted.c.codegen.CCompilerInvoker;
-
 import jdk.graal.compiler.word.Word;
 
 @AutomaticallyRegisteredFeature
@@ -61,7 +60,11 @@ public class VMFeature implements InternalFeature {
     }
 
     protected String determineVMInfo() {
-        return getSelectedGCName();
+        String info = getSelectedGCName();
+        if (SubstrateOptions.useCompressedReferences()) {
+            info += ", compressed references";
+        }
+        return info;
     }
 
     protected static final String getSelectedGCName() {
