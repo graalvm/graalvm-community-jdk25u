@@ -931,6 +931,11 @@ public class SubstrateOptions {
     @Option(help = "Perform single callsite method inlining in the AOT compiled native image", stability = OptionStability.EXPERIMENTAL)//
     public static final HostedOptionKey<Boolean> AOTSingleCallsiteInline = new HostedOptionKey<>(false);
 
+    // Use the same default fallback as
+    // "An Optimization-Driven Incremental Inline Substitution Algorithm for Just-in-Time Compilers"
+    @Option(help = "Maximum inline root size for single callsite inlining", stability = OptionStability.EXPERIMENTAL)//
+    public static final HostedOptionKey<Integer> AOTSingleCallsiteFallbackSize = new HostedOptionKey<>(50000);
+
     @LayerVerifiedOption(kind = Kind.Removed, severity = Severity.Error, positional = false)//
     @Option(help = "file:doc-files/NeverInlineHelp.txt", type = OptionType.Debug)//
     public static final HostedOptionKey<AccumulatingLocatableMultiOptionValue.Strings> NeverInline = new HostedOptionKey<>(AccumulatingLocatableMultiOptionValue.Strings.build());
