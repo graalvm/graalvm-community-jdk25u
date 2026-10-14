@@ -128,7 +128,7 @@ jobs:
           - os: ubuntu-24.04
             env:
               JDK_VERSION: "25"
-              GATE_TAGS: "build,debuginfotest,scismoketest"
+              GATE_TAGS: "build,debuginfotest,scismoketest,scifallbacktest"
               PRIMARY: "substratevm"
           - env:
               JDK_VERSION: "25"

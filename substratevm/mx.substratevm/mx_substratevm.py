@@ -210,6 +210,7 @@ GraalTags = Tags([
     'helloworld',
     'debuginfotest',
     'scismoketest',
+    'scifallbacktest',
     'native_unittests',
     'build',
     'benchmarktest',
@@ -430,6 +431,11 @@ def svm_gate_body(args, tasks):
         if t:
             with native_image_context(IMAGE_ASSERTION_FLAGS) as native_image:
                 scismoketest(['--output-path', svmbuild_dir()] + args.extra_image_builder_arguments)
+
+    with Task('image scifallbacktest', tasks, tags=[GraalTags.scifallbacktest]) as t:
+        if t:
+            with native_image_context(IMAGE_ASSERTION_FLAGS) as native_image:
+                scifallbacktest(['--output-path', svmbuild_dir()] + args.extra_image_builder_arguments)
 
     with Task('image debughelpertest', tasks, tags=[GraalTags.debuginfotest]) as t:
         if t:
@@ -1105,6 +1111,23 @@ def _assert_scismoke_histogram(tracker, is_sci_enabled, variant_name):
     elif not tracker.has_single:
         raise Exception(variant_name + ': singleCallsiteHelper should appear in histogram with SCI disabled')
 
+def _scifallbacktest(native_image, path, args):
+    mx_util.ensure_dir_exists(path)
+    binary_path = join(path, 'scifallback')
+    build_args = [
+        '-cp', classpath('com.oracle.svm.test.sci'),
+        '--initialize-at-build-time=com.oracle.svm.test.sci',
+        'com.oracle.svm.test.sci.SciFallbackTest',
+    ] + svm_experimental_options([
+        '-H:+AOTSingleCallsiteInline',
+        '-H:AOTSingleCallsiteFallbackSize=500',
+    ]) + [
+        '-o', binary_path,
+    ] + args
+
+    # Build should not assert
+    native_image(build_args)
+    mx.run([binary_path])
 
 def _scismoketest(native_image, path, args):
     mx_util.ensure_dir_exists(path)
@@ -1818,6 +1841,25 @@ def scismoketest(args, config=None):
     native_image_context_run(
         lambda native_image, a:
             _scismoketest(native_image, output_path, a), unmask(parsed.image_args),
+        config=config
+    )\
+
+@mx.command(suite_name=suite.name, command_name='scifallbacktest', usage_msg='[options]')
+def scifallbacktest(args, config=None):
+    """
+    Build and run an app with nested single callsite calls with AOTSingleCallsiteInline enabled.
+    Ensure the root method size limit is respected.
+    """
+    parser = ArgumentParser(prog='mx scifallbacktest')
+    all_args = ['--output-path', '--build-only']
+    masked_args = [_mask(arg, all_args) for arg in args]
+    parser.add_argument(all_args[0], metavar='<output-path>', nargs=1, help='Path of the generated image', default=[svmbuild_dir()])
+    parser.add_argument('image_args', nargs='*', default=[])
+    parsed = parser.parse_args(masked_args)
+    output_path = unmask(parsed.output_path)[0]
+    native_image_context_run(
+        lambda native_image, a:
+            _scifallbacktest(native_image, output_path, a), unmask(parsed.image_args),
         config=config
     )
 
