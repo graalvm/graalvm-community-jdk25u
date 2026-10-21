@@ -1792,6 +1792,7 @@ suite = {
                 "opens" : [
                     "com.oracle.svm.core                          to jdk.graal.compiler",
                     "com.oracle.svm.core.nodes                    to jdk.graal.compiler",
+                    "com.oracle.svm.core.graal.amd64              to jdk.graal.compiler",
                     "com.oracle.svm.core.graal.nodes              to jdk.graal.compiler",
                     "com.oracle.svm.core.graal.snippets           to jdk.graal.compiler",
                     "com.oracle.svm.hosted.fieldfolding           to jdk.graal.compiler",
