@@ -288,6 +288,17 @@ public class SubstrateOptions {
         };
     }
 
+    @Fold
+    public static boolean useCompressedReferences() {
+        boolean spawnIsolates = SpawnIsolates.getValue();
+        Boolean value = ConcealedOptions.UseCompressedReferences.getValue();
+        if (value != null) {
+            UserError.guarantee(!value || spawnIsolates, "Compressed references require option %s to be enabled.", SpawnIsolates.getName());
+            return value;
+        }
+        return spawnIsolates;
+    }
+
     /**
      * The currently supported optimization levels. See the option description of {@link #Optimize}
      * for a description of the levels.
@@ -1231,6 +1242,14 @@ public class SubstrateOptions {
                 maxJavaStackTraceDepth = newValue;
             }
         };
+
+        @Option(help = "Use compressed references (32-bit instead of 64-bit references to Java objects).", stability = OptionStability.STABLE) //
+        @LayerVerifiedOption(kind = Kind.Changed, severity = Severity.Error) //
+        public static final HostedOptionKey<Boolean> UseCompressedReferences = new HostedOptionKey<>(null);
+
+        @Option(help = "Use bit-shifting to enlarge the address range with narrow references.") //
+        @LayerVerifiedOption(kind = Kind.Changed, severity = Severity.Error) //
+        public static final HostedOptionKey<Boolean> UseCompressedReferenceShift = new HostedOptionKey<>(true);
 
         /** Use {@link SubstrateOptions#getPageSize()} instead. */
         @LayerVerifiedOption(kind = Kind.Changed, severity = Severity.Error)//
