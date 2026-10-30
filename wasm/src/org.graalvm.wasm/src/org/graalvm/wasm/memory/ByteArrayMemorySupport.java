@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,32 +38,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.oracle.truffle.regex.tregex.string;
+package org.graalvm.wasm.memory;
 
-import com.oracle.truffle.api.strings.TruffleString;
+import java.util.Arrays;
 
-public interface AbstractString extends Iterable<Integer> {
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
-    @Override
-    AbstractStringIterator iterator();
+/**
+ * Version-specific bulk operations on byte-array memories. Replaced by a JDK 25 overlay.
+ */
+final class ByteArrayMemorySupport {
+    private ByteArrayMemorySupport() {
+    }
 
-    int encodedLength();
-
-    Object content();
-
-    AbstractString substring(int start, int end);
-
-    boolean regionMatches(int offset, AbstractString other, int ooffset, int encodedLength);
-
-    TruffleString asTString();
-
-    TruffleString.WithMask asTStringMask(TruffleString pattern);
-
-    default String defaultToString() {
-        StringBufferUTF16 sb = new StringBufferUTF16(encodedLength() * 2);
-        for (int c : this) {
-            sb.append(c);
-        }
-        return sb.materialize().toString();
+    @TruffleBoundary
+    static void fill(byte[] buffer, int offset, int length, byte value) {
+        Arrays.fill(buffer, offset, offset + length, value);
     }
 }

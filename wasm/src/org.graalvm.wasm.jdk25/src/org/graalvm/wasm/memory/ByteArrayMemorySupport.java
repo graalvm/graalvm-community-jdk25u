@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,28 +38,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.oracle.truffle.regex.tregex.parser.flavors;
+package org.graalvm.wasm.memory;
 
-import static org.junit.Assert.assertTrue;
+import java.lang.foreign.MemorySegment;
 
-import org.junit.Test;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
-import com.oracle.truffle.regex.flavor.python.PythonFlags;
-
-public class PythonFlagsTest {
-
-    private static PythonFlags parse(String flags) {
-        return new PythonFlags(flags);
+/**
+ * JDK 25 implementation of bulk operations on byte-array memories.
+ */
+final class ByteArrayMemorySupport {
+    private ByteArrayMemorySupport() {
     }
 
-    @Test
-    public void testParseFlags() {
-        assertTrue(parse("L").isLocale());
-        assertTrue(parse("a").isAscii());
-        assertTrue(parse("i").isIgnoreCase());
-        assertTrue(parse("m").isMultiLine());
-        assertTrue(parse("s").isDotAll());
-        assertTrue(parse("u").isUnicodeExplicitlySet());
-        assertTrue(parse("x").isVerbose());
+    @TruffleBoundary
+    static void fill(byte[] buffer, int offset, int length, byte value) {
+        MemorySegment.ofArray(buffer).asSlice(offset, length).fill(value);
     }
 }
