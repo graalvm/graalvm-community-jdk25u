@@ -26,10 +26,6 @@ suite = {
         "subdir": True,
       },
       {
-        "name" : "regex",
-        "subdir": True
-      },
-      {
         "name" : "sdk",
         "subdir": True
       }
@@ -521,7 +517,6 @@ suite = {
         "truffle:TRUFFLE_TEST",
         "truffle:TRUFFLE_COMPILER",
         "truffle:TRUFFLE_RUNTIME",
-        "regex:TREGEX",
         "ASM_TREE_9.8",
         "ASM_UTIL_9.8",
       ],

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -40,13 +40,51 @@
  */
 package com.oracle.truffle.regex.tregex.string;
 
-import java.util.PrimitiveIterator;
+import com.oracle.truffle.api.strings.TruffleString;
+import com.oracle.truffle.regex.tregex.buffer.ByteArrayBuffer;
 
-public abstract class AbstractStringIterator implements PrimitiveIterator.OfInt {
+public final class StringBufferBytes extends ByteArrayBuffer implements AbstractStringBuffer {
 
-    protected int i;
+    private final Encoding encoding;
 
-    public int getIndex() {
-        return i;
+    public StringBufferBytes(int capacity, Encoding encoding) {
+        super(capacity);
+        assert encoding == Encoding.ASCII || encoding == Encoding.LATIN_1 || encoding == Encoding.BYTES;
+        this.encoding = encoding;
+    }
+
+    @Override
+    public Encoding getEncoding() {
+        return encoding;
+    }
+
+    @Override
+    public void append(int codepoint) {
+        assert codepoint <= encoding.getMaxValue();
+        add((byte) codepoint);
+    }
+
+    @Override
+    public void appendOR(int c1, int c2) {
+        assert c1 <= encoding.getMaxValue();
+        assert c2 <= encoding.getMaxValue();
+        add((byte) (c1 | c2));
+    }
+
+    @Override
+    public void appendXOR(int c1, int c2) {
+        assert c1 <= encoding.getMaxValue();
+        assert c2 <= encoding.getMaxValue();
+        add((byte) (c1 ^ c2));
+    }
+
+    @Override
+    public TruffleString asTString() {
+        return TruffleString.fromByteArrayUncached(toArray(), 0, length(), encoding.getTStringEncoding(), false);
+    }
+
+    @Override
+    public TruffleString.WithMask asTStringMask(TruffleString pattern) {
+        return TruffleString.WithMask.createUncached(pattern, toArray(), encoding.getTStringEncoding());
     }
 }
